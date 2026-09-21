@@ -8,10 +8,25 @@ import { clearDemoSession, getCurrentUser } from "@/lib/auth";
 import { archiveCampaign, createCampaign, getCampaign, updateCampaign } from "@/lib/data";
 import { normalizeWebsiteUrl, scrapeSellerWebsite } from "@/lib/research/website";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { CampaignContext } from "@/lib/types";
+import type { CampaignContext, SellerProfile } from "@/lib/types";
 
 const optionalNumber = (message: string, max: number) => z.preprocess((value) => value === "" || value === undefined ? undefined : value, z.coerce.number().min(0, message).max(max, message).optional());
 const optionalWebsiteUrl = z.preprocess((value) => value === "" || value === undefined ? undefined : String(value).trim(), z.string().max(500).refine((value) => /^(?:https?:\/\/)?[a-z0-9][a-z0-9.-]+\.[a-z]{2,}(?:[/?#].*)?$/i.test(value), "Enter a valid public website URL.").optional());
+const optionalSellerProfileJson = z.preprocess((value) => value === "" || value === undefined ? undefined : String(value), z.string().max(30_000).optional());
+const sellerProfileInputSchema = z.object({
+  websiteUrl: z.string().max(500),
+  name: z.string().max(300).optional(),
+  description: z.string().max(5_000).optional(),
+  phone: z.string().max(100).optional(),
+  whatsapp: z.string().max(500).optional(),
+  email: z.string().max(300).optional(),
+  address: z.string().max(500).optional(),
+  city: z.string().max(200).optional(),
+  services: z.array(z.string().max(300)).max(20).optional(),
+  socialLinks: z.array(z.object({ type: z.enum(["instagram", "facebook", "linkedin", "youtube"]), value: z.string().max(500) })).max(20).optional(),
+  sourceUrl: z.string().max(500).optional(),
+  scrapedAt: z.string().max(100).optional(),
+});
 
 const campaignSchema = z.object({
   name: z.string().trim().min(2, "Give your campaign a name."),
@@ -21,6 +36,13 @@ const campaignSchema = z.object({
   leadLimit: z.coerce.number().int().min(5, "Choose at least 5 prospects.").max(500, "Choose 500 prospects or fewer."),
   offer: z.string().trim().min(10, "Describe the service you sell in a little more detail."),
   sellerWebsiteUrl: optionalWebsiteUrl,
+  sellerProfileJson: optionalSellerProfileJson,
+  sellerProfileEditor: z.enum(["1", "edit"]).optional(),
+  sellerName: z.string().trim().max(300).optional().default(""),
+  sellerPhone: z.string().trim().max(100).optional().default(""),
+  sellerWhatsapp: z.string().trim().max(500).optional().default(""),
+  sellerEmail: z.string().trim().max(300).optional().default(""),
+  sellerAddress: z.string().trim().max(500).optional().default(""),
   targetCustomer: z.string().trim().optional().default(""),
   painPoint: z.string().trim().optional().default(""),
   valueProposition: z.string().trim().optional().default(""),
@@ -30,6 +52,21 @@ const campaignSchema = z.object({
   minReviews: optionalNumber("Use a positive review count.", 1000000),
 });
 
+function submittedSellerProfile(raw: string | undefined, websiteUrl: string | undefined) {
+  if (!raw || !websiteUrl) return undefined;
+  try {
+    const parsed = sellerProfileInputSchema.safeParse(JSON.parse(raw));
+    if (!parsed.success) return undefined;
+    const submittedUrl = new URL(normalizeWebsiteUrl(parsed.data.websiteUrl) ?? parsed.data.websiteUrl);
+    const requestedUrl = new URL(normalizeWebsiteUrl(websiteUrl) ?? websiteUrl);
+    const normalizeHost = (host: string) => host.toLowerCase().replace(/^www\./, "");
+    if (normalizeHost(submittedUrl.hostname) !== normalizeHost(requestedUrl.hostname)) return undefined;
+    return parsed.data as SellerProfile;
+  } catch {
+    return undefined;
+  }
+}
+
 async function campaignContext(value: z.infer<typeof campaignSchema>, existingContext?: { sellerProfile?: CampaignContext["sellerProfile"] }) {
   let requestedWebsite: string | undefined;
   try {
@@ -38,7 +75,17 @@ async function campaignContext(value: z.infer<typeof campaignSchema>, existingCo
     requestedWebsite = undefined;
   }
   const existingWebsite = existingContext?.sellerProfile?.websiteUrl;
-  const sellerProfile = requestedWebsite && requestedWebsite === existingWebsite ? existingContext?.sellerProfile : await scrapeSellerWebsite(value.sellerWebsiteUrl);
+  const submittedProfile = submittedSellerProfile(value.sellerProfileJson, value.sellerWebsiteUrl);
+  const profile = submittedProfile ?? (requestedWebsite && requestedWebsite === existingWebsite ? existingContext?.sellerProfile : await scrapeSellerWebsite(value.sellerWebsiteUrl));
+  const applyAllSellerFields = value.sellerProfileEditor === "edit" || Boolean(submittedProfile);
+  const sellerProfile = profile && value.sellerProfileEditor ? {
+    ...profile,
+    ...(applyAllSellerFields || value.sellerName ? { name: value.sellerName || undefined } : {}),
+    ...(applyAllSellerFields || value.sellerPhone ? { phone: value.sellerPhone || undefined } : {}),
+    ...(applyAllSellerFields || value.sellerWhatsapp ? { whatsapp: value.sellerWhatsapp || undefined } : {}),
+    ...(applyAllSellerFields || value.sellerEmail ? { email: value.sellerEmail || undefined } : {}),
+    ...(applyAllSellerFields || value.sellerAddress ? { address: value.sellerAddress || undefined } : {}),
+  } : profile;
   return {
     offer: value.offer,
     targetCustomer: value.targetCustomer || `Owners and decision makers at ${value.category} businesses.`,

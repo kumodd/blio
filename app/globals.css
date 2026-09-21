@@ -196,6 +196,14 @@ h3 { font-size: 16px; margin-bottom: 5px; }
 .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; }
 .form-field { display: grid; gap: 7px; }
 .form-field.full { grid-column: 1 / -1; }
+.website-autofill-card { padding: 14px; border: 1px solid #dbeee1; border-radius: 12px; background: #f8fcf8; }
+.website-autofill-row { display: flex; align-items: stretch; gap: 8px; }
+.website-autofill-row .input { min-width: 0; }
+.website-autofill-row .button { flex: 0 0 auto; white-space: nowrap; }
+.website-autofill-card .async-status { display: flex; align-items: center; gap: 7px; margin-top: 10px; }
+.autofill-success { display: flex; align-items: flex-start; gap: 7px; margin-top: 10px; color: var(--forest); font-size: 11px; line-height: 1.45; }
+.autofill-success svg { flex: 0 0 auto; margin-top: 1px; }
+.sender-profile-fields { margin-top: 15px; padding-top: 15px; border-top: 1px solid #e3eee6; }
 .optional { color: #a0aaa5; font-size: 10px; font-weight: 500; }
 .input-with-icon { position: relative; }
 .input-with-icon > svg { position: absolute; left: 12px; top: 13px; color: var(--forest); z-index: 1; }
@@ -505,6 +513,8 @@ h3 { font-size: 16px; margin-bottom: 5px; }
   .dashboard-cta { display: block; }
   .dashboard-cta-orbit { display: none; }
   .form-grid, .fact-grid { grid-template-columns: 1fr; }
+  .website-autofill-row { display: grid; }
+  .website-autofill-row .button { width: 100%; }
   .form-field.full { grid-column: auto; }
   .lead-card-grid { grid-template-columns: 1fr; }
   .lead-card-media { min-height: 170px; }

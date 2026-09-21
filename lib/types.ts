@@ -44,6 +44,18 @@ export interface CampaignContext {
   sellerProfile?: SellerProfile;
 }
 
+export interface CampaignDefaults {
+  name: string;
+  category: string;
+  locations: string[];
+  offer: string;
+  targetCustomer: string;
+  painPoint: string;
+  valueProposition: string;
+  cta: string;
+  tone: string;
+}
+
 export interface CampaignFilters {
   minRating?: number;
   minReviews?: number;

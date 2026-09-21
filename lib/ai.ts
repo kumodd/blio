@@ -3,7 +3,7 @@
 import OpenAI from "openai";
 import { z } from "zod";
 
-import type { BusinessContact, Campaign, Lead, LeadIntelligence, OutreachChannel, ProspectAnalysis, ResearchCandidate, SellerProfile } from "./types";
+import type { BusinessContact, Campaign, CampaignDefaults, Lead, LeadIntelligence, OutreachChannel, ProspectAnalysis, ResearchCandidate, SellerProfile } from "./types";
 
 const promptVersion = "openai-grounded-intelligence-v1";
 const defaultModel = "gpt-5-mini";
@@ -164,6 +164,40 @@ const sellerProfileSchema = z.object({
   socialLinks: z.array(z.object({ type: z.enum(["instagram", "facebook", "linkedin", "youtube"]), value: z.string() })).max(12),
 });
 
+const campaignDefaultsFormat = {
+  type: "json_schema",
+  name: "blio_campaign_defaults",
+  strict: true,
+  schema: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      name: { type: "string" },
+      category: { type: "string" },
+      locations: { type: "array", items: { type: "string" } },
+      offer: { type: "string" },
+      targetCustomer: { type: "string" },
+      painPoint: { type: "string" },
+      valueProposition: { type: "string" },
+      cta: { type: "string" },
+      tone: { type: "string", enum: ["Warm, direct, and helpful", "Concise and professional", "Casual and conversational", "Insightful and consultative"] },
+    },
+    required: ["name", "category", "locations", "offer", "targetCustomer", "painPoint", "valueProposition", "cta", "tone"],
+  },
+} as any;
+
+const campaignDefaultsSchema = z.object({
+  name: z.string(),
+  category: z.string(),
+  locations: z.array(z.string()).max(10),
+  offer: z.string(),
+  targetCustomer: z.string(),
+  painPoint: z.string(),
+  valueProposition: z.string(),
+  cta: z.string(),
+  tone: z.enum(["Warm, direct, and helpful", "Concise and professional", "Casual and conversational", "Insightful and consultative"]),
+});
+
 function getOpenAIClient() {
   const apiKey = process.env.OPENAI_API_KEY;
   return apiKey ? new OpenAI({ apiKey, maxRetries: 1, timeout: 12_000 }) : null;
@@ -294,6 +328,54 @@ export async function extractSellerProfileFromWebsite(snapshot: SellerWebsiteSna
     } as SellerProfile;
   } catch (error) {
     console.error("OpenAI seller website extraction failed; using parsed website facts:", error);
+    return fallback;
+  }
+}
+
+function fallbackCampaignDefaults(profile: SellerProfile): CampaignDefaults {
+  const services = profile.services?.filter(Boolean).slice(0, 5) ?? [];
+  const serviceLabel = services[0] ?? "service";
+  const rawOffer = services.length ? services.join(", ") : profile.description ?? "";
+  const offer = rawOffer.trim().length >= 10 ? rawOffer.trim() : `${serviceLabel} services for local businesses`;
+  return {
+    name: `New ${serviceLabel} campaign`,
+    category: "Local businesses",
+    locations: profile.city ? [profile.city] : [],
+    offer,
+    targetCustomer: "Local business owners and decision makers.",
+    painPoint: "They want more qualified local customers and a clearer way to grow.",
+    valueProposition: offer,
+    cta: "Open to a quick conversation next week?",
+    tone: "Warm, direct, and helpful",
+  };
+}
+
+export async function suggestCampaignDefaults(profile: SellerProfile): Promise<CampaignDefaults> {
+  const fallback = fallbackCampaignDefaults(profile);
+  if (!process.env.OPENAI_API_KEY) return fallback;
+  try {
+    const raw = await structuredResponse(
+      "blio_campaign_defaults",
+      "Create editable campaign defaults for a sales prospecting campaign from the supplied seller website profile. Use only explicit evidence in the profile. Identify the seller's services and any explicitly stated customer industries, target audience, service areas, or locations. Do not invent a target market, location, result, guarantee, or service. If a target market or location is not stated, use a broad editable default and leave locations empty rather than guessing. Keep all values concise and practical for form fields.",
+      JSON.stringify({ sellerProfile: profile }),
+      campaignDefaultsFormat,
+      1600,
+    );
+    const parsed = campaignDefaultsSchema.safeParse(raw);
+    if (!parsed.success) return fallback;
+    return {
+      name: parsed.data.name.trim() || fallback.name,
+      category: parsed.data.category.trim() || fallback.category,
+      locations: parsed.data.locations.map((location) => location.trim()).filter(Boolean).slice(0, 10).length ? parsed.data.locations.map((location) => location.trim()).filter(Boolean).slice(0, 10) : fallback.locations,
+      offer: parsed.data.offer.trim().length >= 10 ? parsed.data.offer.trim() : fallback.offer,
+      targetCustomer: parsed.data.targetCustomer.trim() || fallback.targetCustomer,
+      painPoint: parsed.data.painPoint.trim() || fallback.painPoint,
+      valueProposition: parsed.data.valueProposition.trim() || fallback.valueProposition,
+      cta: parsed.data.cta.trim() || fallback.cta,
+      tone: parsed.data.tone.trim() || fallback.tone,
+    };
+  } catch (error) {
+    console.error("OpenAI campaign autofill failed; using website profile defaults:", error);
     return fallback;
   }
 }
