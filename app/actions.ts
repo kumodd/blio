@@ -5,10 +5,13 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { clearDemoSession, getCurrentUser } from "@/lib/auth";
-import { archiveCampaign, createCampaign, updateCampaign } from "@/lib/data";
+import { archiveCampaign, createCampaign, getCampaign, updateCampaign } from "@/lib/data";
+import { normalizeWebsiteUrl, scrapeSellerWebsite } from "@/lib/research/website";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import type { CampaignContext } from "@/lib/types";
 
 const optionalNumber = (message: string, max: number) => z.preprocess((value) => value === "" || value === undefined ? undefined : value, z.coerce.number().min(0, message).max(max, message).optional());
+const optionalWebsiteUrl = z.preprocess((value) => value === "" || value === undefined ? undefined : String(value).trim(), z.string().max(500).refine((value) => /^(?:https?:\/\/)?[a-z0-9][a-z0-9.-]+\.[a-z]{2,}(?:[/?#].*)?$/i.test(value), "Enter a valid public website URL.").optional());
 
 const campaignSchema = z.object({
   name: z.string().trim().min(2, "Give your campaign a name."),
@@ -17,6 +20,7 @@ const campaignSchema = z.object({
   radiusKm: z.coerce.number().min(1, "Choose a search radius.").max(100, "Use a radius of 100 km or less."),
   leadLimit: z.coerce.number().int().min(5, "Choose at least 5 prospects.").max(500, "Choose 500 prospects or fewer."),
   offer: z.string().trim().min(10, "Describe the service you sell in a little more detail."),
+  sellerWebsiteUrl: optionalWebsiteUrl,
   targetCustomer: z.string().trim().optional().default(""),
   painPoint: z.string().trim().optional().default(""),
   valueProposition: z.string().trim().optional().default(""),
@@ -26,7 +30,15 @@ const campaignSchema = z.object({
   minReviews: optionalNumber("Use a positive review count.", 1000000),
 });
 
-function campaignContext(value: z.infer<typeof campaignSchema>) {
+async function campaignContext(value: z.infer<typeof campaignSchema>, existingContext?: { sellerProfile?: CampaignContext["sellerProfile"] }) {
+  let requestedWebsite: string | undefined;
+  try {
+    requestedWebsite = value.sellerWebsiteUrl ? normalizeWebsiteUrl(value.sellerWebsiteUrl) : undefined;
+  } catch {
+    requestedWebsite = undefined;
+  }
+  const existingWebsite = existingContext?.sellerProfile?.websiteUrl;
+  const sellerProfile = requestedWebsite && requestedWebsite === existingWebsite ? existingContext?.sellerProfile : await scrapeSellerWebsite(value.sellerWebsiteUrl);
   return {
     offer: value.offer,
     targetCustomer: value.targetCustomer || `Owners and decision makers at ${value.category} businesses.`,
@@ -34,6 +46,7 @@ function campaignContext(value: z.infer<typeof campaignSchema>) {
     valueProposition: value.valueProposition || value.offer,
     cta: value.cta || "Open to a quick conversation next week?",
     tone: value.tone || "Warm, direct, and helpful",
+    ...(sellerProfile ? { sellerProfile } : {}),
   };
 }
 
@@ -58,7 +71,7 @@ export async function createCampaignAction(formData: FormData) {
     locations: value.locations.split(",").map((location) => location.trim()).filter(Boolean),
     radiusKm: value.radiusKm,
     leadLimit: value.leadLimit,
-    context: campaignContext(value),
+    context: await campaignContext(value),
     filters: { minRating: value.minRating || undefined, minReviews: value.minReviews || undefined, websiteRequired: formData.get("websiteRequired") === "on", whatsappRequired: formData.get("whatsappRequired") === "on", socialRequired: formData.get("socialRequired") === "on" },
   });
   revalidatePath("/dashboard");
@@ -73,13 +86,15 @@ export async function updateCampaignAction(formData: FormData) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const value = values.data;
+  const current = await getCampaign(user.id, id);
+  if (!current) redirect("/campaigns");
   const campaign = await updateCampaign(user.id, id, {
     name: value.name,
     category: value.category,
     locations: value.locations.split(",").map((location) => location.trim()).filter(Boolean),
     radiusKm: value.radiusKm,
     leadLimit: value.leadLimit,
-    context: campaignContext(value),
+    context: await campaignContext(value, current.context),
     filters: { minRating: value.minRating || undefined, minReviews: value.minReviews || undefined, websiteRequired: formData.get("websiteRequired") === "on", whatsappRequired: formData.get("whatsappRequired") === "on", socialRequired: formData.get("socialRequired") === "on" },
   });
   if (!campaign) redirect("/campaigns");

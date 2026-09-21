@@ -24,6 +24,7 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
             <div className="form-field full"><label className="label" htmlFor="offer">Service or solution</label><textarea className="textarea" id="offer" name="offer" rows={3} placeholder="We build fast websites and improve local SEO so businesses get more qualified enquiries." required /><span className="help">Examples: websites, SEO, digital marketing, branding, software, consulting, or advertising.</span></div>
             <div className="form-field"><label className="label" htmlFor="name">Campaign name</label><input className="input" id="name" name="name" placeholder="e.g. Restaurants · Patna" required /></div>
             <div className="form-field"><label className="label" htmlFor="cta">Call to action <span className="optional">Optional</span></label><input className="input" id="cta" name="cta" placeholder="Open to a quick conversation next week?" /></div>
+            <div className="form-field full"><label className="label" htmlFor="sellerWebsiteUrl">Your business website <span className="optional">Optional</span></label><input className="input" id="sellerWebsiteUrl" name="sellerWebsiteUrl" type="url" placeholder="https://yourbusiness.com" /><span className="help">We’ll read the public website to capture your business name, services, contact details, and positioning for more relevant outreach.</span></div>
           </div>
         </section>
 

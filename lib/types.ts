@@ -19,6 +19,21 @@ export type JobStatus =
 
 export type OutreachChannel = "whatsapp" | "email" | "sms" | "phone" | "website" | "instagram" | "facebook" | "linkedin" | "youtube";
 
+export interface SellerProfile {
+  websiteUrl: string;
+  name?: string;
+  description?: string;
+  phone?: string;
+  whatsapp?: string;
+  email?: string;
+  address?: string;
+  city?: string;
+  services?: string[];
+  socialLinks?: BusinessContact[];
+  sourceUrl?: string;
+  scrapedAt?: string;
+}
+
 export interface CampaignContext {
   offer: string;
   targetCustomer: string;
@@ -26,6 +41,7 @@ export interface CampaignContext {
   valueProposition: string;
   cta: string;
   tone: string;
+  sellerProfile?: SellerProfile;
 }
 
 export interface CampaignFilters {

@@ -269,6 +269,11 @@ h3 { font-size: 16px; margin-bottom: 5px; }
 .fact { border: 1px solid #eef1ef; border-radius: 11px; padding: 12px; }
 .fact-label { color: #99a59f; font-size: 10px; margin-bottom: 5px; }
 .fact-value { font-size: 12px; font-weight: 700; overflow-wrap: anywhere; }
+.seller-profile-summary { display: flex; align-items: flex-start; gap: 11px; margin-top: 15px; padding: 13px; border: 1px solid #dbeee1; border-radius: 11px; background: #f5fbf6; }
+.seller-profile-icon { display: grid; place-items: center; width: 31px; height: 31px; flex: 0 0 auto; border-radius: 9px; color: var(--forest); background: white; }
+.seller-profile-summary strong { display: block; font-size: 12px; }
+.seller-profile-summary p { color: var(--muted); font-size: 11px; line-height: 1.45; margin: 4px 0 6px; }
+.seller-profile-missing { border-color: #eef1ef; background: #fafcfb; }
 .signal-list, .reason-list, .contact-list { display: grid; gap: 8px; }
 .signal-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border-radius: 9px; background: #fafcfb; font-size: 12px; }
 .signal-label { color: var(--muted); }
@@ -282,6 +287,10 @@ h3 { font-size: 16px; margin-bottom: 5px; }
 .contact-row:last-child { border-bottom: 0; }
 .contact-row svg { color: var(--forest); width: 15px; height: 15px; }
 .contact-row a { color: var(--forest); overflow-wrap: anywhere; }
+.seller-context-note { display: flex; align-items: flex-start; gap: 7px; margin-bottom: 15px; padding: 9px 10px; border-radius: 9px; font-size: 10px; line-height: 1.4; }
+.seller-context-note svg { flex: 0 0 auto; margin-top: 1px; }
+.seller-context-ready { color: var(--forest); background: var(--forest-soft); }
+.seller-context-missing { color: var(--muted); background: #fafcfb; border: 1px solid #eef1ef; }
 .draft-card { padding: 21px; position: sticky; top: 22px; }
 .draft-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 17px; }
 .draft-header p { color: var(--muted); font-size: 12px; line-height: 1.5; margin-bottom: 0; }

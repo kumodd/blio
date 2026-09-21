@@ -16,8 +16,15 @@ function socialType(value: string): BusinessContact["type"] | undefined {
 
 function contactsFromOutscraper(value: any): BusinessContact[] {
   const contacts: BusinessContact[] = [];
-  if (typeof value.phone === "string") contacts.push({ type: "phone", value: value.phone, verified: Boolean(value.verified) });
-  const emails = Array.isArray(value.emails) ? value.emails : [];
+  const phoneValues = [value.phone, value.mobile, value.telephone].filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+  for (const phone of phoneValues) contacts.push({ type: "phone", value: phone, verified: Boolean(value.verified) });
+  const whatsappValues = [value.whatsapp, value.whatsapp_url, value.whatsapp_link].filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+  for (const whatsapp of whatsappValues) contacts.push({ type: "whatsapp", value: whatsapp, verified: false });
+  const emails = [
+    ...(Array.isArray(value.emails) ? value.emails : []),
+    value.email,
+    value.email_address,
+  ];
   for (const email of emails) {
     const address = typeof email === "string" ? email : email?.value;
     if (typeof address === "string") contacts.push({ type: "email", value: address, verified: false });
@@ -32,6 +39,8 @@ function contactsFromOutscraper(value: any): BusinessContact[] {
     const type = typeof url === "string" ? socialType(url) : undefined;
     if (type && typeof url === "string") contacts.push({ type, value: url, verified: false });
   }
+  const website = value.site ?? value.website ?? value.website_url;
+  if (typeof website === "string" && /^https?:\/\//i.test(website)) contacts.push({ type: "website", value: website, verified: false });
   return contacts.filter((contact, index, all) => all.findIndex((item) => item.type === contact.type && item.value === contact.value) === index);
 }
 
@@ -51,8 +60,8 @@ function normalizeCandidate(value: any, index: number, sourceProvider = "Discove
     lng: typeof value.longitude === "number" ? value.longitude : typeof value.lng === "number" ? value.lng : undefined,
     imageUrl: photos[0],
     photos,
-    phone: value.phone ? String(value.phone) : undefined,
-    website: value.site ?? value.website ? String(value.site ?? value.website) : undefined,
+    phone: value.phone ?? value.mobile ?? value.telephone ? String(value.phone ?? value.mobile ?? value.telephone) : undefined,
+    website: value.site ?? value.website ?? value.website_url ? String(value.site ?? value.website ?? value.website_url) : undefined,
     rating: typeof value.rating === "number" ? value.rating : undefined,
     reviewCount: typeof value.reviews === "number" ? value.reviews : typeof value.reviewCount === "number" ? value.reviewCount : undefined,
     description: value.description ? String(value.description) : undefined,
