@@ -1,0 +1,11 @@
+import Link from "next/link";
+import { ArrowRight, BrainCircuit, MessageSquareText, Search, Target } from "lucide-react";
+
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth";
+
+export default async function HomePage() {
+  const user = await getCurrentUser();
+  if (user) redirect("/dashboard");
+  return <div className="landing-page"><section className="landing-hero"><div className="landing-hero-copy"><p className="eyebrow">AI prospecting for local business sales</p><h1>Find the right businesses. Know why they fit.</h1><p className="landing-lead">blio turns your service offer and target market into researched prospects, opportunity highlights, personalized outreach, and a simple sales pipeline.</p><div className="actions"><Link className="button button-primary" href="/login">Start prospecting <ArrowRight /></Link><Link className="button button-secondary" href="/about">How blio works</Link></div></div><div className="landing-orbit"><div className="landing-orbit-card"><span className="landing-orbit-score">87</span><span>opportunity score</span><strong>Business ABC</strong><small>Website · local visibility · 823 reviews</small></div></div></section><section className="landing-section"><p className="eyebrow">One focused workflow</p><h2>From target market to first conversation.</h2><div className="landing-grid"><article><Search /><span>01</span><h3>Discover</h3><p>Choose a location, business type, radius, and approximate prospect count.</p></article><article><BrainCircuit /><span>02</span><h3>Understand</h3><p>AI analyzes public signals and explains the strongest opportunities.</p></article><article><Target /><span>03</span><h3>Prioritize</h3><p>See highlights, fit scores, and a clear pipeline stage for every prospect.</p></article><article><MessageSquareText /><span>04</span><h3>Reach out</h3><p>Generate editable email, WhatsApp, Instagram, SMS, and call drafts.</p></article></div></section><section className="landing-bottom"><div><h2>Sell any service to any local business.</h2><p>Websites, SEO, marketing, branding, software, consulting, advertising, and more.</p></div><Link className="text-link" href="/login">Open your workspace <ArrowRight size={14} /></Link></section></div>;
+}
