@@ -234,6 +234,35 @@ h3 { font-size: 16px; margin-bottom: 5px; }
 .detail-highlight strong, .detail-highlight span { display: block; }
 .detail-highlight strong { color: var(--ink); font-size: 11px; margin-bottom: 3px; }
 .detail-highlight div span { color: var(--muted); font-size: 11px; line-height: 1.35; }
+.prospect-analysis { margin-top: 21px; padding: 17px; border: 1px solid #dbeee1; border-radius: 13px; background: #fbfefb; }
+.prospect-analysis-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.prospect-analysis-header h2 { color: var(--ink); font-size: 18px; margin-bottom: 5px; }
+.prospect-analysis-header p:not(.eyebrow) { color: var(--muted); font-size: 12px; line-height: 1.5; margin-bottom: 0; }
+.prospect-analysis-button { flex: 0 0 auto; min-height: 38px; padding: 9px 12px; font-size: 11px; }
+.prospect-analysis-empty { display: flex; align-items: flex-start; gap: 9px; margin-top: 15px; padding: 12px; border-radius: 10px; background: #f1faf3; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.prospect-analysis-empty svg { flex: 0 0 auto; color: var(--forest); width: 16px; height: 16px; }
+.prospect-analysis-result { display: grid; gap: 11px; margin-top: 16px; }
+.prospect-analysis-summary { display: flex; align-items: flex-start; gap: 9px; padding: 12px; border-radius: 10px; background: var(--forest-soft); color: #45695a; font-size: 12px; line-height: 1.5; }
+.prospect-analysis-summary svg { flex: 0 0 auto; color: var(--forest); width: 16px; height: 16px; margin-top: 1px; }
+.prospect-analysis-summary p, .prospect-next-action p { margin: 0; }
+.prospect-next-action { padding: 12px; border: 1px solid #e8efea; border-radius: 10px; background: white; }
+.prospect-next-action > span { display: flex; align-items: center; gap: 6px; color: var(--forest); font-size: 10px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; margin-bottom: 6px; }
+.prospect-next-action p { color: var(--ink); font-size: 12px; line-height: 1.5; }
+.analysis-gap-list { display: grid; gap: 8px; }
+.analysis-gap { padding: 12px; border: 1px solid #e8efea; border-radius: 10px; background: white; }
+.analysis-gap-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 7px; }
+.analysis-gap-top strong { font-size: 12px; }
+.analysis-gap p { color: var(--muted); font-size: 11px; line-height: 1.5; margin: 5px 0 0; }
+.analysis-gap p b { color: #61766a; }
+.analysis-priority { border-radius: 99px; padding: 4px 7px; font-size: 9px; font-weight: 800; white-space: nowrap; text-transform: uppercase; }
+.analysis-priority-high { color: var(--rose-ink); background: var(--rose); }
+.analysis-priority-medium { color: var(--amber-ink); background: var(--amber); }
+.analysis-priority-low { color: var(--forest); background: var(--forest-soft); }
+.analysis-questions { padding-top: 3px; }
+.analysis-questions h3 { display: flex; align-items: center; gap: 7px; color: var(--ink); font-size: 13px; margin-bottom: 8px; }
+.analysis-questions h3 svg { color: var(--forest); }
+.analysis-questions ul { display: grid; gap: 6px; margin: 0; padding-left: 19px; color: var(--muted); font-size: 11px; line-height: 1.45; }
+.analysis-model { color: #9aa59f; font-size: 10px; }
 .detail-section h3 { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
 .detail-section h3 svg { color: var(--forest); width: 16px; height: 16px; }
 .fact-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px; }
@@ -278,6 +307,7 @@ h3 { font-size: 16px; margin-bottom: 5px; }
 .action-with-feedback { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 5px; }
 .action-error { color: var(--rose-ink); font-size: 10px; }
 .inline-error { color: var(--rose-ink); background: var(--rose); border-radius: 8px; padding: 9px 11px; font-size: 11px; line-height: 1.4; }
+.inline-error svg { width: 14px; height: 14px; vertical-align: -3px; margin-right: 4px; }
 .async-status { color: var(--muted); font-size: 11px; }
 .loading-page { min-height: 50vh; position: relative; }
 .skeleton { display: block; border-radius: 7px; background: linear-gradient(100deg, #edf2ee 20%, #f8faf8 38%, #edf2ee 56%); background-size: 300% 100%; animation: skeleton-shimmer 1.35s ease-in-out infinite; }
@@ -474,6 +504,9 @@ h3 { font-size: 16px; margin-bottom: 5px; }
   .lead-hero-main h2 { overflow-wrap: anywhere; }
   .score-panel { flex: 0 0 auto; }
   .detail-highlight-grid { grid-template-columns: 1fr; }
+  .prospect-analysis-header { display: grid; }
+  .prospect-analysis-button { width: 100%; }
+  .analysis-gap-top { align-items: flex-start; }
   .section-card { padding: 17px; }
   .login-page { grid-template-columns: 1fr; }
   .login-art { min-height: 330px; padding: 28px 25px; }

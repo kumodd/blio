@@ -160,3 +160,20 @@ export interface LeadIntelligence {
   reasoning: string[];
   signals: { label: string; value: string; positive: boolean }[];
 }
+
+export type ProspectGapPriority = "high" | "medium" | "low";
+
+export interface ProspectInformationGap {
+  label: string;
+  whyItMatters: string;
+  howToFind: string;
+  priority: ProspectGapPriority;
+}
+
+export interface ProspectAnalysis {
+  summary: string;
+  nextBestAction: string;
+  missingInformation: ProspectInformationGap[];
+  discoveryQuestions: string[];
+  model: string;
+}
