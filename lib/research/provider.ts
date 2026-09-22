@@ -86,11 +86,20 @@ async function discoverWithOutscraper(campaign: Campaign): Promise<ResearchCandi
   params.set("region", "IN");
   if (process.env.OUTSCRAPER_ENRICH_CONTACTS === "true") params.append("enrichment", "contacts_n_leads");
 
-  const response = await fetch(`${OUTSCRAPER_URL}?${params.toString()}`, {
-    headers: { "X-API-KEY": process.env.OUTSCRAPER_API_KEY! },
-    cache: "no-store",
-    signal: AbortSignal.timeout(55000),
-  });
+  const timeoutMs = Number.parseInt(process.env.OUTSCRAPER_TIMEOUT_MS ?? "35000", 10) || 35000;
+  let response: Response;
+  try {
+    response = await fetch(`${OUTSCRAPER_URL}?${params.toString()}`, {
+      headers: { "X-API-KEY": process.env.OUTSCRAPER_API_KEY! },
+      cache: "no-store",
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "TimeoutError") {
+      throw new Error(`Google Maps discovery timed out after ${Math.round(timeoutMs / 1000)} seconds. Try fewer prospects or a smaller search radius.`);
+    }
+    throw error;
+  }
   if (!response.ok) {
     const detail = await response.text();
     throw new Error(`Outscraper returned ${response.status}: ${detail.slice(0, 220)}`);

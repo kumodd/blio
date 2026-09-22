@@ -246,7 +246,21 @@ export async function getResearchJob(userId: string, id: string) {
   const { data, error } = await supabase.from("research_jobs").select("*").eq("id", id).maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) return undefined;
-  return (await getCampaign(userId, data.campaign_id)) ? mapJob(data) : undefined;
+  if (!(await getCampaign(userId, data.campaign_id))) return undefined;
+  const mapped = mapJob(data);
+  const startedAt = mapped.startedAt ? new Date(mapped.startedAt).getTime() : new Date(mapped.createdAt).getTime();
+  const staleAfterMs = 5 * 60 * 1000;
+  if (["queued", "running"].includes(mapped.status) && Number.isFinite(startedAt) && Date.now() - startedAt > staleAfterMs) {
+    const { data: staleData } = await supabase
+      .from("research_jobs")
+      .update({ status: "failed", error: "Research timed out before completion. Run the campaign again.", completed_at: new Date().toISOString() })
+      .eq("id", id)
+      .in("status", ["queued", "running"])
+      .select("*")
+      .maybeSingle();
+    return staleData ? mapJob(staleData) : mapped;
+  }
+  return mapped;
 }
 
 export async function updateResearchJob(userId: string, id: string, patch: Partial<ResearchJob>) {
@@ -271,8 +285,6 @@ export async function updateResearchJob(userId: string, id: string, patch: Parti
 export async function insertResearchLead(userId: string, campaignId: string, candidate: ResearchCandidate, index: number, intelligence?: LeadIntelligence) {
   const supabase = await clientOrDemo();
   if (!supabase) return demoInsertResearchLead(campaignId, candidate, index, intelligence);
-  const campaign = await getCampaign(userId, campaignId);
-  if (!campaign) throw new Error("Campaign not found");
   const existingBusinessResponse = await supabase.from("businesses").select("id").eq("canonical_name", candidate.name).eq("address", candidate.address).maybeSingle();
   const businessId = existingBusinessResponse.data?.id ?? crypto.randomUUID();
   const timestamp = new Date().toISOString();
@@ -300,7 +312,7 @@ export async function insertResearchLead(userId: string, campaignId: string, can
     }
   }
   const { data: existingLead } = await supabase.from("lead_records").select("id").eq("campaign_id", campaignId).eq("business_id", businessId).maybeSingle();
-  if (existingLead) return getLead(userId, existingLead.id);
+  if (existingLead) return existingLead.id;
   const { data, error } = await supabase
     .from("lead_records")
     .insert({
@@ -319,7 +331,7 @@ export async function insertResearchLead(userId: string, campaignId: string, can
     .select("id")
     .single();
   if (error) throw new Error(error.message);
-  return getLead(userId, data.id);
+  return data.id;
 }
 
 export async function listDrafts(userId: string, leadId: string) {

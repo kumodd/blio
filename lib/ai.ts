@@ -256,11 +256,11 @@ async function enhanceCandidateBatchWithAI(campaign: Campaign, candidates: Resea
 export async function enhanceCandidatesWithAI(campaign: Campaign, candidates: ResearchCandidate[]) {
   if (!process.env.OPENAI_API_KEY || !candidates.length) return new Map<string, LeadIntelligence>();
   const results = new Map<string, LeadIntelligence>();
-  const batchSize = 20;
-  for (let index = 0; index < candidates.length; index += batchSize) {
-    const batch = candidates.slice(index, index + batchSize);
-    const result = await enhanceCandidateBatchWithAI(campaign, batch);
-    result.forEach((value, key) => results.set(key, value));
+  const batchSize = 15;
+  const batches = Array.from({ length: Math.ceil(candidates.length / batchSize) }, (_, index) => candidates.slice(index * batchSize, (index + 1) * batchSize));
+  const completed = await Promise.allSettled(batches.map((batch) => enhanceCandidateBatchWithAI(campaign, batch)));
+  for (const result of completed) {
+    if (result.status === "fulfilled") result.value.forEach((value, key) => results.set(key, value));
   }
   return results;
 }
