@@ -111,8 +111,9 @@ function parseSnapshot(url: string, html: string): SellerWebsiteSnapshot {
 async function fetchPublicWebsite(url: string) {
   let currentUrl = url;
   const startedAt = Date.now();
+  const requestBudgetMs = 10_000;
   for (let attempt = 0; attempt < 4; attempt += 1) {
-    const remainingMs = 12_000 - (Date.now() - startedAt);
+    const remainingMs = requestBudgetMs - (Date.now() - startedAt);
     if (remainingMs <= 0) throw new Error("Website request timed out.");
     const response = await fetch(currentUrl, {
       headers: { accept: "text/html,application/xhtml+xml", "user-agent": "blio-business-profile/1.0" },

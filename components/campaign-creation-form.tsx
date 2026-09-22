@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { ArrowRight, Check, Loader2, MapPin, Sparkles, Target, WandSparkles } from "lucide-react";
 import { useRef, useState } from "react";
+import type { FormEvent } from "react";
+import { useRouter } from "next/navigation";
 
-import { createCampaignAction } from "@/app/actions";
-import { FormSubmitButton } from "@/components/form-submit-button";
 import type { CampaignDefaults, SellerProfile } from "@/lib/types";
 
 const autofillFields: Array<keyof CampaignDefaults> = ["name", "category", "locations", "offer", "targetCustomer", "painPoint", "valueProposition", "cta", "tone"];
@@ -18,6 +18,7 @@ function setFormValue(form: HTMLFormElement, name: string, value: string) {
 
 export function CampaignCreationForm() {
   const formRef = useRef<HTMLFormElement>(null);
+  const router = useRouter();
   const lastRequestedUrl = useRef("");
   const requestVersion = useRef(0);
   const [websiteUrl, setWebsiteUrl] = useState("");
@@ -25,6 +26,24 @@ export function CampaignCreationForm() {
   const [loading, setLoading] = useState(false);
   const [autofillError, setAutofillError] = useState("");
   const [autofillStatus, setAutofillStatus] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+
+  async function submitCampaign(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (submitting || loading) return;
+    setSubmitting(true);
+    setSubmitError("");
+    try {
+      const response = await fetch("/api/campaigns", { method: "POST", body: new FormData(event.currentTarget) });
+      const payload = await response.json().catch(() => ({})) as { error?: string; campaign?: { id: string } };
+      if (!response.ok || !payload.campaign?.id) throw new Error(payload.error ?? "Could not create campaign.");
+      router.push(`/campaigns/${payload.campaign.id}?autostart=1`);
+    } catch (reason) {
+      setSubmitError(reason instanceof Error ? reason.message : "Could not create campaign.");
+      setSubmitting(false);
+    }
+  }
 
   async function autofillFromWebsite() {
     const value = websiteUrl.trim();
@@ -72,7 +91,7 @@ export function CampaignCreationForm() {
     if (value.trim() !== lastRequestedUrl.current) lastRequestedUrl.current = "";
   }
 
-  return <form ref={formRef} className="card form-card" action={createCampaignAction}>
+  return <form ref={formRef} className="card form-card" onSubmit={submitCampaign}>
     <input type="hidden" name="sellerProfileJson" value={sellerProfileJson} readOnly />
     <input type="hidden" name="sellerProfileEditor" value="1" readOnly />
     <section className="form-section">
@@ -117,6 +136,7 @@ export function CampaignCreationForm() {
     <details className="form-details"><summary><Sparkles size={15} /> Advanced filters and outreach voice</summary><div className="form-grid" style={{ marginTop: 18 }}><div className="form-field"><label className="label" htmlFor="minRating">Minimum rating</label><select className="select" id="minRating" name="minRating" defaultValue=""><option value="">Any rating</option><option value="4">4.0+</option><option value="4.3">4.3+</option><option value="4.5">4.5+</option><option value="4.7">4.7+</option></select></div><div className="form-field"><label className="label" htmlFor="minReviews">Minimum reviews</label><select className="select" id="minReviews" name="minReviews" defaultValue=""><option value="">Any volume</option><option value="10">10+</option><option value="25">25+</option><option value="50">50+</option><option value="100">100+</option></select></div><div className="form-field"><label className="label" htmlFor="tone">Tone</label><select className="select" id="tone" name="tone" defaultValue="Warm, direct, and helpful"><option>Warm, direct, and helpful</option><option>Concise and professional</option><option>Casual and conversational</option><option>Insightful and consultative</option></select></div><div className="form-field full"><div className="checkbox-grid"><label className="check-card"><input type="checkbox" name="websiteRequired" /> Website detected</label><label className="check-card"><input type="checkbox" name="whatsappRequired" /> WhatsApp available</label><label className="check-card"><input type="checkbox" name="socialRequired" /> Social profile found</label></div></div></div></details>
 
     <div className="form-flow-note"><Target size={16} /><span>Your campaign will automatically start its first discovery job after you save it.</span></div>
-    <div className="actions" style={{ justifyContent: "flex-start", paddingTop: 22 }}><FormSubmitButton pendingLabel="Saving campaign…" disabled={loading}><Check /> Save and find prospects <ArrowRight /></FormSubmitButton><Link href="/campaigns" className="button button-secondary">Cancel</Link></div>
+    {submitError ? <div className="alert alert-error" role="alert">{submitError}</div> : null}
+    <div className="actions" style={{ justifyContent: "flex-start", paddingTop: 22 }}><button className="button button-primary" type="submit" disabled={loading || submitting} aria-busy={submitting}>{submitting ? <Loader2 className="spin" /> : <Check />}{submitting ? "Saving campaign…" : <>Save and find prospects <ArrowRight /></>}</button><Link href="/campaigns" className="button button-secondary">Cancel</Link></div>
   </form>;
 }

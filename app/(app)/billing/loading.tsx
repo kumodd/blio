@@ -1,0 +1,3 @@
+export default function BillingLoading() {
+  return <div className="loading-page"><div className="loading-topbar"><span className="skeleton skeleton-eyebrow" /><span className="skeleton skeleton-title" /><span className="skeleton skeleton-subtitle" /></div><div className="billing-plan-grid"><div className="card section-card loading-card"><span className="skeleton skeleton-input" /><span className="skeleton skeleton-input" /><span className="skeleton skeleton-button-wide" /></div><div className="card section-card loading-card"><span className="skeleton skeleton-input" /><span className="skeleton skeleton-input" /><span className="skeleton skeleton-button-wide" /></div></div></div>;
+}

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, LayoutDashboard, LogOut, Plus, Search, Settings, Users } from "lucide-react";
+import { BarChart3, CreditCard, LayoutDashboard, LogOut, Plus, Search, Settings, Users } from "lucide-react";
 
 import { signOutAction } from "@/app/actions";
 import { FormSubmitButton } from "./form-submit-button";
@@ -14,6 +14,7 @@ const navigation = [
   { href: "/campaigns", label: "Campaigns", icon: Search },
   { href: "/leads", label: "All leads", icon: Users },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/billing", label: "Billing", icon: CreditCard },
 ];
 
 export function AppShell({ children, user }: { children: React.ReactNode; user: { email: string; name: string } }) {

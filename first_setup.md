@@ -8,6 +8,7 @@ BLIO uses:
 - Supabase Auth, Postgres, and Row Level Security
 - Outscraper Google Maps Search for business discovery
 - OpenAI Responses API for lead intelligence and outreach drafts
+- Razorpay Subscriptions for recurring billing (test mode during development)
 
 ## 1. Prerequisites
 
@@ -91,7 +92,7 @@ supabase db push
 supabase migration list
 ```
 
-`supabase db push` applies every migration in `supabase/migrations/` that is not yet recorded on the linked project. The migrations create profiles, campaigns, research jobs, businesses, sources, contacts, leads, drafts, job events, indexes, triggers, RLS policies, campaign search radius, and the sales-pipeline proposal stage.
+`supabase db push` applies every migration in `supabase/migrations/` that is not yet recorded on the linked project. The migrations create profiles, campaigns, research jobs, businesses, sources, contacts, leads, drafts, billing subscriptions, webhook event storage, indexes, triggers, and RLS policies.
 
 ### 4.3 Configure email OTP
 
@@ -126,11 +127,54 @@ BLIO_DEMO_MODE=false
 
 Restart the development server after changing environment variables.
 
-## 5. Configure Outscraper Google Maps discovery
+## 5. Configure Razorpay test subscriptions
+
+The current paid tier is Growth at ₹1,999 per month. Razorpay Subscriptions requires a plan to exist before the app creates a customer subscription.
+
+### 5.1 Create test credentials
+
+1. Open the Razorpay Dashboard and switch to **Test Mode**.
+2. Create test API keys under **Account & Settings → API Keys**.
+3. Create a monthly subscription plan for ₹1,999 and copy its `plan_...` ID.
+4. Add these server-only variables to `.env.local`:
+
+```env
+RAZORPAY_KEY_ID=rzp_test_your-key-id
+RAZORPAY_KEY_SECRET=your-test-key-secret
+RAZORPAY_GROWTH_PLAN_ID=plan_your-growth-plan-id
+RAZORPAY_SUBSCRIPTION_TOTAL_COUNT=120
+RAZORPAY_WEBHOOK_SECRET=choose-a-long-random-secret
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+```
+
+The Supabase service-role key is required only for the signed webhook route. Never expose it to browser code, never prefix it with `NEXT_PUBLIC_`, and never commit it.
+
+### 5.2 Configure the webhook
+
+In Razorpay Test Mode, add this webhook URL:
+
+```text
+https://your-domain.com/api/billing/webhook
+```
+
+Use the same value as `RAZORPAY_WEBHOOK_SECRET`. Enable subscription events including `subscription.authenticated`, `subscription.activated`, `subscription.charged`, `subscription.pending`, `subscription.halted`, `subscription.cancelled`, `subscription.completed`, `subscription.expired`, `subscription.paused`, and `subscription.resumed`.
+
+For local testing, use a public HTTPS tunnel because Razorpay cannot deliver webhooks to a localhost URL. Open `/billing`, select **Start Growth plan**, complete the Razorpay test checkout, and verify the subscription status changes after signature verification/webhook processing.
+
+### 5.3 Billing behavior
+
+- The browser receives only the Razorpay key ID and subscription ID.
+- The server creates subscriptions and verifies the checkout signature using `payment_id|subscription_id`.
+- Webhook signatures are checked against the raw request body.
+- Webhook event IDs are stored for idempotent processing.
+- Cancellation defaults to the end of the current billing cycle.
+- The app keeps the free Starter plan available for every workspace.
+
+## 6. Configure Outscraper Google Maps discovery
 
 BLIO uses the [Outscraper Google Maps Search API](https://docs.outscraper.com/endpoints/maps-search/).
 
-### 5.1 Create the key
+### 6.1 Create the key
 
 1. Create an account at [Outscraper](https://outscraper.com/).
 2. Add billing/credits as required by your usage.
@@ -143,10 +187,11 @@ OUTSCRAPER_API_KEY=your-out-scraper-api-key
 
 The key is sent server-side using the `X-API-KEY` header and is never sent to browser JavaScript.
 
-### 5.2 Recommended settings
+### 6.2 Recommended settings
 
 ```env
 OUTSCRAPER_LIMIT=50
+OUTSCRAPER_TIMEOUT_MS=35000
 OUTSCRAPER_ENRICH_CONTACTS=false
 ```
 
@@ -160,7 +205,7 @@ OUTSCRAPER_ENRICH_CONTACTS=true
 
 Contact enrichment can increase provider usage and execution time and may add email/social signals from business websites.
 
-### 5.3 India search behavior
+### 6.3 India search behavior
 
 BLIO automatically:
 
@@ -184,7 +229,7 @@ Prefer customer-facing Google Maps categories such as `dental clinic`, `salon`, 
 
 When creating a campaign, choose an approximate prospect target such as `10`, `25`, `50`, `100`, `200`, or `500`. This is a maximum target rather than a guarantee: filters, duplicate removal, provider results, and available public data can produce fewer prospects. When the provider returns image URLs, BLIO stores them with the business record and displays them on prospect cards; otherwise cards use a clean initials fallback.
 
-## 6. Configure OpenAI
+## 7. Configure OpenAI
 
 BLIO uses OpenAI for:
 
@@ -195,7 +240,7 @@ BLIO uses OpenAI for:
 - Email drafts
 - Phone call scripts
 
-### 6.1 Create the key
+### 7.1 Create the key
 
 1. Create an API project at [platform.openai.com](https://platform.openai.com/).
 2. Add billing or usage credits.
@@ -211,11 +256,11 @@ OPENAI_MODEL=gpt-5-mini
 
 The key must remain server-only. Never use `NEXT_PUBLIC_OPENAI_API_KEY`.
 
-### 6.2 Grounding behavior
+### 7.2 Grounding behavior
 
 The application sends the model campaign context, scraped business facts, ratings, reviews, contact paths, and source metadata. Prompts prohibit invented facts, claims, discounts, outcomes, or relationships. If OpenAI is unavailable, BLIO uses a deterministic grounded fallback.
 
-## 7. Complete local environment
+## 8. Complete local environment
 
 For a real local setup, `.env.local` should contain:
 
@@ -229,15 +274,23 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 
 OUTSCRAPER_API_KEY=your-out-scraper-api-key
 OUTSCRAPER_LIMIT=50
+OUTSCRAPER_TIMEOUT_MS=35000
 OUTSCRAPER_ENRICH_CONTACTS=false
 
 OPENAI_API_KEY=your-openai-api-key
 OPENAI_MODEL=gpt-5-mini
+
+RAZORPAY_KEY_ID=rzp_test_your-key-id
+RAZORPAY_KEY_SECRET=your-test-key-secret
+RAZORPAY_WEBHOOK_SECRET=your-webhook-secret
+RAZORPAY_GROWTH_PLAN_ID=plan_your-growth-plan-id
+RAZORPAY_SUBSCRIPTION_TOTAL_COUNT=120
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
 
 Replace all placeholder values with real values.
 
-## 8. Run and verify locally
+## 9. Run and verify locally
 
 Start the development server:
 
@@ -265,12 +318,13 @@ npm audit --omit=dev --audit-level=moderate
 7. Confirm drafts are editable before copying/opening an external channel.
 8. Change lead status and add notes/tags.
 9. Export the campaign CSV.
+10. Open `/billing`, start the Growth test checkout, verify the subscription status, and test cancellation at cycle end.
 
-## 9. Deploy to production
+## 10. Deploy to production
 
 Vercel is the simplest deployment target for this Next.js application.
 
-### 9.1 Create the deployment
+### 10.1 Create the deployment
 
 1. Push the repository to a private Git repository.
 2. Import it into Vercel.
@@ -283,8 +337,9 @@ Install command: npm ci
 ```
 
 5. Add production environment variables in Vercel **Project Settings → Environment Variables**.
+6. In Vercel **Settings → Environment Variables**, enable **Automatically expose System Environment Variables**. Then enable **Settings → Advanced → Skew Protection** and redeploy. This keeps an open campaign page connected to the same deployment that rendered it, preventing stale Server Action errors after a deployment.
 
-### 9.2 Production environment variables
+### 10.2 Production environment variables
 
 ```env
 BLIO_DEMO_MODE=false
@@ -299,11 +354,18 @@ OUTSCRAPER_ENRICH_CONTACTS=false
 
 OPENAI_API_KEY=your-openai-api-key
 OPENAI_MODEL=gpt-5-mini
+
+RAZORPAY_KEY_ID=rzp_test_your-key-id
+RAZORPAY_KEY_SECRET=your-test-key-secret
+RAZORPAY_WEBHOOK_SECRET=your-webhook-secret
+RAZORPAY_GROWTH_PLAN_ID=plan_your-growth-plan-id
+RAZORPAY_SUBSCRIPTION_TOTAL_COUNT=120
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
 
 Do not add provider keys as `NEXT_PUBLIC_` variables or commit them to the repository.
 
-### 9.3 Update Supabase URLs
+### 10.3 Update Supabase URLs
 
 After the production domain is known:
 
@@ -312,7 +374,7 @@ After the production domain is known:
 3. Verify the OTP template and SMTP configuration.
 4. Redeploy after changing environment variables.
 
-### 9.4 Production smoke test
+### 10.4 Production smoke test
 
 Verify that:
 
@@ -323,7 +385,7 @@ Verify that:
 - OpenAI drafts contain only supplied facts.
 - CSV export contains only the requesting user's permitted leads.
 
-## 10. Alternative Node deployment
+## 11. Alternative Node deployment
 
 For a VPS, container, or managed Node host:
 
@@ -335,21 +397,24 @@ npm start
 
 Use systemd, Docker, or another process supervisor. Inject production environment variables through the host secret manager.
 
-## 11. Security checklist
+## 12. Security checklist
 
 - [ ] `.env.local` is not committed.
 - [ ] `BLIO_DEMO_MODE=false` in production.
 - [ ] No provider key uses a `NEXT_PUBLIC_` prefix.
 - [ ] Supabase migration has been applied.
 - [ ] Supabase RLS policies are enabled.
-- [ ] The Supabase service-role key is not in the application.
+- [ ] The Supabase service-role key exists only as a server-side deployment secret for the webhook route.
+- [ ] Razorpay webhook signature verification is enabled.
+- [ ] Razorpay Test Mode is used until the live billing flow is fully verified.
+- [ ] Vercel system environment variables and Skew Protection are enabled for production deployments.
 - [ ] Outscraper and OpenAI usage limits/billing alerts are configured.
 - [ ] Provider terms and applicable privacy/data rules have been reviewed.
 - [ ] Outreach remains human-reviewed; BLIO does not send messages automatically.
 - [ ] Source URLs and observed timestamps are preserved.
 - [ ] Provider keys are rotated immediately if exposed.
 
-## 12. Troubleshooting
+## 13. Troubleshooting
 
 ### The app always shows demo data
 
@@ -393,7 +458,11 @@ This means `OPENAI_API_KEY` is missing, invalid, the selected model is unavailab
 
 Confirm the intended project is linked, then run `supabase db push` and inspect `supabase migration list`. Keep schema changes in a new migration created with `supabase migration new <name>`; do not edit migrations that have already been applied remotely.
 
-## 13. Useful commands
+### Failed to find Server Action after a deployment
+
+This means a browser tab is using a page from a different deployment than the server handling its request. Refresh the page once. For production, enable Vercel Skew Protection and automatically exposed system environment variables, then redeploy. BLIO also tags builds with the Vercel deployment ID when it is available so client navigation and Server Actions can remain version-aligned.
+
+## 14. Useful commands
 
 ```bash
 npm run dev

@@ -198,13 +198,13 @@ const campaignDefaultsSchema = z.object({
   tone: z.enum(["Warm, direct, and helpful", "Concise and professional", "Casual and conversational", "Insightful and consultative"]),
 });
 
-function getOpenAIClient() {
+function getOpenAIClient(options: { maxRetries?: number; timeout?: number } = {}) {
   const apiKey = process.env.OPENAI_API_KEY;
-  return apiKey ? new OpenAI({ apiKey, maxRetries: 1, timeout: 12_000 }) : null;
+  return apiKey ? new OpenAI({ apiKey, maxRetries: options.maxRetries ?? 1, timeout: options.timeout ?? 12_000 }) : null;
 }
 
-async function structuredResponse<T>(name: string, instructions: string, input: string, format: any, maxOutputTokens = 2400): Promise<T | null> {
-  const client = getOpenAIClient();
+async function structuredResponse<T>(name: string, instructions: string, input: string, format: any, maxOutputTokens = 2400, clientOptions?: { maxRetries?: number; timeout?: number }): Promise<T | null> {
+  const client = getOpenAIClient(clientOptions);
   if (!client) return null;
   const response = await client.responses.create({
     model: process.env.OPENAI_MODEL ?? defaultModel,
@@ -291,9 +291,9 @@ function fallbackSellerProfile(snapshot: SellerWebsiteSnapshot): SellerProfile {
   const linkedPhone = snapshot.links.find((value) => /^tel:/i.test(value))?.replace(/^tel:/i, "");
   return {
     websiteUrl: snapshot.url,
-    name: structuredText("name") || snapshot.title.split(/[|–-]/)[0]?.trim() || undefined,
+    name: structuredText("name") || snapshot.title.split(/[|–—-]/)[0]?.trim() || undefined,
     description: structuredText("description") || snapshot.description || undefined,
-    phone: structuredText("phone") || linkedPhone || phones[0],
+    phone: structuredText("phone") || linkedPhone || phones[0] || whatsapp?.match(/wa\.me\/([+\d]+)/i)?.[1],
     whatsapp,
     email: structuredText("email") || linkedEmail || emails[0],
     address: structuredText("address"),
@@ -303,6 +303,10 @@ function fallbackSellerProfile(snapshot: SellerWebsiteSnapshot): SellerProfile {
     sourceUrl: snapshot.url,
     scrapedAt: new Date().toISOString(),
   };
+}
+
+function firstNonEmpty(...values: Array<string | undefined>) {
+  return values.find((value) => Boolean(value?.trim()))?.trim();
 }
 
 export async function extractSellerProfileFromWebsite(snapshot: SellerWebsiteSnapshot): Promise<SellerProfile> {
@@ -315,6 +319,7 @@ export async function extractSellerProfileFromWebsite(snapshot: SellerWebsiteSna
       JSON.stringify(snapshot),
       sellerProfileFormat,
       1200,
+      { maxRetries: 0, timeout: 9_000 },
     );
     const parsed = sellerProfileSchema.safeParse(raw);
     if (!parsed.success) return fallback;
@@ -322,7 +327,18 @@ export async function extractSellerProfileFromWebsite(snapshot: SellerWebsiteSna
     return {
       ...fallback,
       websiteUrl: snapshot.url,
-      ...extracted,
+      // Prefer deterministic HTML/JSON-LD facts for contact fields. The model
+      // may improve descriptions and services, but it must not replace an
+      // exact email, phone number, WhatsApp link, or title-derived name.
+      name: firstNonEmpty(fallback.name, extracted.name as string | undefined),
+      description: firstNonEmpty(extracted.description as string | undefined, fallback.description),
+      phone: firstNonEmpty(fallback.phone, extracted.phone as string | undefined),
+      whatsapp: firstNonEmpty(fallback.whatsapp, extracted.whatsapp as string | undefined),
+      email: firstNonEmpty(fallback.email, extracted.email as string | undefined),
+      address: firstNonEmpty(extracted.address as string | undefined, fallback.address),
+      city: firstNonEmpty(extracted.city as string | undefined, fallback.city),
+      services: (Array.isArray(extracted.services) && extracted.services.length ? extracted.services : fallback.services)?.filter((service): service is string => typeof service === "string" && Boolean(service.trim())).slice(0, 12),
+      socialLinks: (Array.isArray(extracted.socialLinks) && extracted.socialLinks.length ? extracted.socialLinks : fallback.socialLinks),
       sourceUrl: snapshot.url,
       scrapedAt: new Date().toISOString(),
     } as SellerProfile;
@@ -333,12 +349,12 @@ export async function extractSellerProfileFromWebsite(snapshot: SellerWebsiteSna
 }
 
 function fallbackCampaignDefaults(profile: SellerProfile): CampaignDefaults {
-  const services = profile.services?.filter(Boolean).slice(0, 5) ?? [];
-  const serviceLabel = services[0] ?? "service";
+  const services = profile.services?.filter((service) => Boolean(service) && service.length <= 100 && !/[.!?]$/.test(service)).slice(0, 5) ?? [];
+  const serviceLabel = services[0] ?? profile.name ?? "service";
   const rawOffer = services.length ? services.join(", ") : profile.description ?? "";
   const offer = rawOffer.trim().length >= 10 ? rawOffer.trim() : `${serviceLabel} services for local businesses`;
   return {
-    name: `New ${serviceLabel} campaign`,
+    name: `${profile.name ?? "New"} campaign`,
     category: "Local businesses",
     locations: profile.city ? [profile.city] : [],
     offer,
@@ -360,11 +376,14 @@ export async function suggestCampaignDefaults(profile: SellerProfile): Promise<C
       JSON.stringify({ sellerProfile: profile }),
       campaignDefaultsFormat,
       1600,
+      { maxRetries: 0, timeout: 9_000 },
     );
     const parsed = campaignDefaultsSchema.safeParse(raw);
     if (!parsed.success) return fallback;
     return {
-      name: parsed.data.name.trim() || fallback.name,
+      // A model-generated campaign label can accidentally borrow a slogan
+      // from the page. Keep the verified business name as the editable label.
+      name: profile.name?.trim() ? `${profile.name.trim()} campaign` : parsed.data.name.trim() || fallback.name,
       category: parsed.data.category.trim() || fallback.category,
       locations: parsed.data.locations.map((location) => location.trim()).filter(Boolean).slice(0, 10).length ? parsed.data.locations.map((location) => location.trim()).filter(Boolean).slice(0, 10) : fallback.locations,
       offer: parsed.data.offer.trim().length >= 10 ? parsed.data.offer.trim() : fallback.offer,

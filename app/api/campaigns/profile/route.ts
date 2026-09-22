@@ -5,7 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { suggestCampaignDefaults } from "@/lib/ai";
 import { normalizeWebsiteUrl, scrapeSellerWebsite } from "@/lib/research/website";
 
-export const maxDuration = 30;
+export const maxDuration = 45;
 
 const requestSchema = z.object({ websiteUrl: z.string().trim().min(1).max(500) });
 
