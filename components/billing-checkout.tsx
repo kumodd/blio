@@ -53,7 +53,7 @@ export function BillingCheckout({ email, configured, active }: { email: string; 
       const checkout = new window.Razorpay({
         key: payload.keyId,
         subscription_id: payload.subscriptionId,
-        name: "blio",
+        name: "QuickLeads",
         description: "Growth plan — AI prospecting workspace",
         prefill: { email },
         theme: { color: "#0d5c4a" },

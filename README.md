@@ -1,4 +1,3 @@
-# BLIO
 
 Business Lead Intelligence & Outreach — a human-in-the-loop AI prospecting, outreach, and sales pipeline workspace for selling any service to local businesses.
 
@@ -18,8 +17,8 @@ The product flow is: define your offer → choose location, business type, radiu
 
 ## Provider setup
 
-1. Create an Outscraper account and copy its API key into `OUTSCRAPER_API_KEY`. BLIO calls the Google Maps search endpoint with one query per target location, `region=IN`, `language=en`, deduplication, and `async=false`. `OUTSCRAPER_LIMIT` controls results per location. Start with `OUTSCRAPER_ENRICH_CONTACTS=false`; enable it after the base search works because website contact enrichment increases provider usage and execution time.
-2. Create an OpenAI API key and copy it into `OPENAI_API_KEY`. BLIO uses the official OpenAI JavaScript SDK and Responses API. `gpt-5-mini` is the default because it supports structured outputs and is intended for cost-sensitive, low-latency, high-volume tasks; change `OPENAI_MODEL` only after verifying the model is available to your account.
+1. Create an Outscraper account and copy its API key into `OUTSCRAPER_API_KEY`. QuickLeads calls the Google Maps search endpoint with one query per target location, `region=IN`, `language=en`, deduplication, and `async=false`. `OUTSCRAPER_LIMIT` controls results per location. Start with `OUTSCRAPER_ENRICH_CONTACTS=false`; enable it after the base search works because website contact enrichment increases provider usage and execution time.
+2. Create an OpenAI API key and copy it into `OPENAI_API_KEY`. QuickLeads uses the official OpenAI JavaScript SDK and Responses API. `gpt-5-mini` is the default because it supports structured outputs and is intended for cost-sensitive, low-latency, high-volume tasks; change `OPENAI_MODEL` only after verifying the model is available to your account.
 3. Keep both provider keys server-side. Do not prefix them with `NEXT_PUBLIC_` or expose them in browser code.
 
 ## Verification
@@ -38,4 +37,4 @@ npm run build
 - Provider data is stored with source and observation metadata; OpenAI lead intelligence and outreach prompts are grounded in those collected facts.
 - Outscraper results are filtered locally by rating/review/contactability and then scored by OpenAI; the fallback scorer still keeps the job usable if OpenAI is temporarily unavailable.
 
-# blio
+# QuickLeads

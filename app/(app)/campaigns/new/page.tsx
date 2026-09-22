@@ -12,7 +12,7 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
         <div>
           <p className="eyebrow">New prospecting campaign</p>
           <h1>Find businesses worth selling to.</h1>
-          <p className="subtitle">Start with your website. BLIO prepares the offer, market, and outreach context for your review.</p>
+          <p className="subtitle">Start with your website. QuickLeads prepares the offer, market, and outreach context for your review.</p>
         </div>
       </div>
       {params.error ? <div className="alert alert-error" style={{ maxWidth: 880 }}>{params.error}</div> : null}

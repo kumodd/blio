@@ -1,8 +1,8 @@
-# BLIO first setup
+# QuickLeads first setup
 
-This guide covers local development and a production deployment of BLIO.
+This guide covers local development and a production deployment of QuickLeads.
 
-BLIO uses:
+QuickLeads uses:
 
 - Next.js 16 and Node.js
 - Supabase Auth, Postgres, and Row Level Security
@@ -172,7 +172,7 @@ For local testing, use a public HTTPS tunnel because Razorpay cannot deliver web
 
 ## 6. Configure Outscraper Google Maps discovery
 
-BLIO uses the [Outscraper Google Maps Search API](https://docs.outscraper.com/endpoints/maps-search/).
+QuickLeads uses the [Outscraper Google Maps Search API](https://docs.outscraper.com/endpoints/maps-search/).
 
 ### 6.1 Create the key
 
@@ -207,7 +207,7 @@ Contact enrichment can increase provider usage and execution time and may add em
 
 ### 6.3 India search behavior
 
-BLIO automatically:
+QuickLeads automatically:
 
 - Appends `India` to each location query.
 - Sends `region=IN`.
@@ -227,11 +227,11 @@ HSR Layout, Bengaluru
 
 Prefer customer-facing Google Maps categories such as `dental clinic`, `salon`, `cloud kitchen`, or `accounting firm`.
 
-When creating a campaign, choose an approximate prospect target such as `10`, `25`, `50`, `100`, `200`, or `500`. This is a maximum target rather than a guarantee: filters, duplicate removal, provider results, and available public data can produce fewer prospects. When the provider returns image URLs, BLIO stores them with the business record and displays them on prospect cards; otherwise cards use a clean initials fallback.
+When creating a campaign, choose an approximate prospect target such as `10`, `25`, `50`, `100`, `200`, or `500`. This is a maximum target rather than a guarantee: filters, duplicate removal, provider results, and available public data can produce fewer prospects. When the provider returns image URLs, QuickLeads stores them with the business record and displays them on prospect cards; otherwise cards use a clean initials fallback.
 
 ## 7. Configure OpenAI
 
-BLIO uses OpenAI for:
+QuickLeads uses OpenAI for:
 
 - Lead-fit scoring
 - Evidence-based reasoning
@@ -258,7 +258,7 @@ The key must remain server-only. Never use `NEXT_PUBLIC_OPENAI_API_KEY`.
 
 ### 7.2 Grounding behavior
 
-The application sends the model campaign context, scraped business facts, ratings, reviews, contact paths, and source metadata. Prompts prohibit invented facts, claims, discounts, outcomes, or relationships. If OpenAI is unavailable, BLIO uses a deterministic grounded fallback.
+The application sends the model campaign context, scraped business facts, ratings, reviews, contact paths, and source metadata. Prompts prohibit invented facts, claims, discounts, outcomes, or relationships. If OpenAI is unavailable, QuickLeads uses a deterministic grounded fallback.
 
 ## 8. Complete local environment
 
@@ -410,7 +410,7 @@ Use systemd, Docker, or another process supervisor. Inject production environmen
 - [ ] Vercel system environment variables and Skew Protection are enabled for production deployments.
 - [ ] Outscraper and OpenAI usage limits/billing alerts are configured.
 - [ ] Provider terms and applicable privacy/data rules have been reviewed.
-- [ ] Outreach remains human-reviewed; BLIO does not send messages automatically.
+- [ ] Outreach remains human-reviewed; QuickLeads does not send messages automatically.
 - [ ] Source URLs and observed timestamps are preserved.
 - [ ] Provider keys are rotated immediately if exposed.
 
@@ -460,7 +460,7 @@ Confirm the intended project is linked, then run `supabase db push` and inspect 
 
 ### Failed to find Server Action after a deployment
 
-This means a browser tab is using a page from a different deployment than the server handling its request. Refresh the page once. For production, enable Vercel Skew Protection and automatically exposed system environment variables, then redeploy. BLIO also tags builds with the Vercel deployment ID when it is available so client navigation and Server Actions can remain version-aligned.
+This means a browser tab is using a page from a different deployment than the server handling its request. Refresh the page once. For production, enable Vercel Skew Protection and automatically exposed system environment variables, then redeploy. QuickLeads also tags builds with the Vercel deployment ID when it is available so client navigation and Server Actions can remain version-aligned.
 
 ## 14. Useful commands
 

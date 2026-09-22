@@ -28,6 +28,7 @@ button { cursor: pointer; }
 .sidebar { width: 248px; flex: 0 0 248px; padding: 28px 18px; border-right: 1px solid var(--line); background: #fbfcfb; display: flex; flex-direction: column; }
 .brand { display: flex; align-items: center; gap: 10px; padding: 0 12px 32px; font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700; letter-spacing: -0.06em; }
 .brand-mark { width: 30px; height: 30px; border-radius: 10px 10px 10px 3px; background: var(--forest); color: var(--lime); display: grid; place-items: center; font-size: 15px; }
+.brand-mark svg { width: 21px; height: 21px; display: block; }
 .nav-label { color: #a0ada7; text-transform: uppercase; letter-spacing: .12em; font-size: 10px; font-weight: 700; padding: 0 13px 9px; }
 .nav-list { display: grid; gap: 4px; }
 .nav-link { display: flex; gap: 12px; align-items: center; padding: 11px 13px; border-radius: 11px; color: #718078; font-size: 14px; font-weight: 600; transition: .2s ease; }

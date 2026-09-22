@@ -20,7 +20,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       </section>
       <section className="login-form-wrap">
         <div className="login-form">
-          <h2>Welcome to blio</h2>
+          <h2>Welcome to QuickLeads</h2>
           <p className="subtitle">Sign in to your prospecting workspace with a one-time code.</p>
           {params.error ? <div className="alert alert-error">{params.error}</div> : null}
           {isDemoMode() ? <div className="demo-code"><strong>Demo mode</strong><br />Use any email address. We’ll give you code <strong>123456</strong> on the next step.</div> : null}
@@ -32,7 +32,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             </div>
             <FormSubmitButton className="button button-primary" style={{ width: "100%", marginTop: 7 }} pendingLabel="Sending code…">Continue with email</FormSubmitButton>
           </form>
-          <p className="login-footer">By continuing, you agree to use public business information responsibly. blio prepares outreach for your review; it never sends messages automatically.</p>
+          <p className="login-footer">By continuing, you agree to use public business information responsibly. QuickLeads prepares outreach for your review; it never sends messages automatically.</p>
           <Link href="/" className="login-footer" style={{ display: "inline-block", marginTop: 20 }}>← Back to start</Link>
         </div>
       </section>

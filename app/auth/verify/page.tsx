@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { verifyOtpAction } from "@/app/login/actions";
 import { FormSubmitButton } from "@/components/form-submit-button";
+import { Logo } from "@/components/logo";
 
 export default async function VerifyPage({ searchParams }: { searchParams: Promise<{ email?: string; next?: string; error?: string }> }) {
   const params = await searchParams;
@@ -9,7 +10,7 @@ export default async function VerifyPage({ searchParams }: { searchParams: Promi
   return (
     <main className="login-page">
       <section className="login-art">
-        <Link href="/login"><span className="brand login-brand"><span className="brand-mark">B</span><span>blio</span></span></Link>
+        <Link href="/login"><Logo light /></Link>
         <div className="login-copy"><p className="eyebrow" style={{ color: "var(--lime)" }}>One small step</p><h1>Your workspace is waiting.</h1><p>Enter the six-digit code to continue. No password to remember, no onboarding maze.</p></div>
         <div className="login-proof"><div><strong>Secure</strong>email OTP access</div><div><strong>Private</strong>workspace isolation</div></div>
       </section>

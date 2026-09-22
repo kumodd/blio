@@ -116,7 +116,7 @@ async function fetchPublicWebsite(url: string) {
     const remainingMs = requestBudgetMs - (Date.now() - startedAt);
     if (remainingMs <= 0) throw new Error("Website request timed out.");
     const response = await fetch(currentUrl, {
-      headers: { accept: "text/html,application/xhtml+xml", "user-agent": "blio-business-profile/1.0" },
+      headers: { accept: "text/html,application/xhtml+xml", "user-agent": "quickleads-business-profile/1.0" },
       redirect: "manual",
       cache: "no-store",
       signal: AbortSignal.timeout(remainingMs),
