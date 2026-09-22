@@ -4,6 +4,26 @@ import type { BusinessContact, Campaign, ResearchCandidate } from "../types";
 import { candidatesForCampaign } from "../data";
 
 const OUTSCRAPER_URL = "https://api.outscraper.com/maps/search";
+export const OUTSCRAPER_MAPS_SEARCH_DOCS = "https://docs.outscraper.com/endpoints/maps-search/";
+export const OUTSCRAPER_CONTACTS_DOCS = "https://docs.outscraper.com/endpoints/contacts-and-leads/";
+
+function isRecord(value: unknown): value is Record<string, any> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function stringValues(value: unknown): string[] {
+  if (typeof value === "string" && value.trim()) return [value.trim()];
+  if (Array.isArray(value)) return value.flatMap(stringValues);
+  if (isRecord(value)) return Object.values(value).flatMap(stringValues);
+  return [];
+}
+
+function objectValueUrl(value: unknown): string | undefined {
+  if (typeof value === "string" && value.trim()) return value.trim();
+  if (!isRecord(value)) return undefined;
+  const candidate = value.url ?? value.value ?? value.link ?? value.href;
+  return typeof candidate === "string" && candidate.trim() ? candidate.trim() : undefined;
+}
 
 function socialType(value: string): BusinessContact["type"] | undefined {
   const url = value.toLowerCase();
@@ -16,9 +36,19 @@ function socialType(value: string): BusinessContact["type"] | undefined {
 
 function contactsFromOutscraper(value: any): BusinessContact[] {
   const contacts: BusinessContact[] = [];
-  const phoneValues = [value.phone, value.mobile, value.telephone].filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+  const phoneValues = [
+    value.phone,
+    value.mobile,
+    value.telephone,
+    ...(Array.isArray(value.phones) ? value.phones : []),
+  ].map((item) => typeof item === "string" ? item : item?.value).filter((item): item is string => typeof item === "string" && item.trim().length > 0);
   for (const phone of phoneValues) contacts.push({ type: "phone", value: phone, verified: Boolean(value.verified) });
-  const whatsappValues = [value.whatsapp, value.whatsapp_url, value.whatsapp_link].filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+  const whatsappValues = [
+    value.whatsapp,
+    value.whatsapp_url,
+    value.whatsapp_link,
+    isRecord(value.socials) ? value.socials.whatsapp : undefined,
+  ].flatMap(stringValues);
   for (const whatsapp of whatsappValues) contacts.push({ type: "whatsapp", value: whatsapp, verified: false });
   const emails = [
     ...(Array.isArray(value.emails) ? value.emails : []),
@@ -31,11 +61,13 @@ function contactsFromOutscraper(value: any): BusinessContact[] {
   }
   const socialLinks = [
     ...(Array.isArray(value.social_links) ? value.social_links : []),
+    ...(isRecord(value.social_links) ? Object.values(value.social_links) : []),
     ...(Array.isArray(value.socials) ? value.socials : []),
+    ...(isRecord(value.socials) ? Object.values(value.socials) : []),
     ...[value.instagram, value.facebook, value.linkedin, value.youtube].filter(Boolean),
   ];
   for (const link of socialLinks) {
-    const url = typeof link === "string" ? link : link?.url ?? link?.value;
+    const url = objectValueUrl(link);
     const type = typeof url === "string" ? socialType(url) : undefined;
     if (type && typeof url === "string") contacts.push({ type, value: url, verified: false });
   }
@@ -71,7 +103,15 @@ function normalizeCandidate(value: any, index: number, sourceProvider = "Discove
   };
 }
 
-async function discoverWithOutscraper(campaign: Campaign): Promise<ResearchCandidate[]> {
+export interface DiscoveryResult {
+  candidates: ResearchCandidate[];
+  provider: string;
+  rawCount: number;
+  normalizedCount: number;
+  contactEnrichmentRequested: boolean;
+}
+
+async function discoverWithOutscraper(campaign: Campaign): Promise<DiscoveryResult> {
   const params = new URLSearchParams();
   const radius = Math.max(1, campaign.radiusKm ?? 10);
   const queries = campaign.locations.map((location) => `${campaign.category}, within ${radius} km of ${location}, India`);
@@ -84,7 +124,11 @@ async function discoverWithOutscraper(campaign: Campaign): Promise<ResearchCandi
   params.set("async", "false");
   params.set("language", "en");
   params.set("region", "IN");
-  if (process.env.OUTSCRAPER_ENRICH_CONTACTS === "true") params.append("enrichment", "contacts_n_leads");
+  // Explicit contact filters require contact evidence. Request enrichment for
+  // those campaigns automatically; this avoids silently treating an
+  // un-enriched response as proof that no WhatsApp/social profile exists.
+  const contactEnrichmentRequested = process.env.OUTSCRAPER_ENRICH_CONTACTS === "true" || Boolean(campaign.filters.whatsappRequired || campaign.filters.socialRequired);
+  if (contactEnrichmentRequested) params.append("enrichment", "contacts_n_leads");
 
   const timeoutMs = Number.parseInt(process.env.OUTSCRAPER_TIMEOUT_MS ?? "35000", 10) || 35000;
   let response: Response;
@@ -107,10 +151,11 @@ async function discoverWithOutscraper(campaign: Campaign): Promise<ResearchCandi
   const payload = await response.json();
   if (payload.status === "Failure") throw new Error("Outscraper reported a failed Google Maps task.");
   const rows = Array.isArray(payload.data) ? payload.data.flat(Infinity) : [];
-  return rows.map((row: any, index: number) => normalizeCandidate(row, index, "Outscraper Google Maps")).filter((value: ResearchCandidate | null): value is ResearchCandidate => Boolean(value));
+  const candidates = rows.map((row: any, index: number) => normalizeCandidate(row, index, "Outscraper Google Maps")).filter((value: ResearchCandidate | null): value is ResearchCandidate => Boolean(value));
+  return { candidates, provider: "Outscraper Google Maps", rawCount: rows.length, normalizedCount: candidates.length, contactEnrichmentRequested };
 }
 
-async function discoverWithCustomAdapter(campaign: Campaign): Promise<ResearchCandidate[]> {
+async function discoverWithCustomAdapter(campaign: Campaign): Promise<DiscoveryResult> {
   const response = await fetch(process.env.DISCOVERY_API_URL!, {
     method: "POST",
     headers: {
@@ -124,21 +169,30 @@ async function discoverWithCustomAdapter(campaign: Campaign): Promise<ResearchCa
   const payload = await response.json();
   const values = Array.isArray(payload) ? payload : payload.businesses;
   if (!Array.isArray(values)) throw new Error("Discovery provider returned an invalid response");
-  return values.map((value, index) => normalizeCandidate(value, index)).filter((value: ResearchCandidate | null): value is ResearchCandidate => Boolean(value));
+  const candidates = values.map((value, index) => normalizeCandidate(value, index)).filter((value: ResearchCandidate | null): value is ResearchCandidate => Boolean(value));
+  return { candidates, provider: "Discovery adapter", rawCount: values.length, normalizedCount: candidates.length, contactEnrichmentRequested: false };
 }
 
 export async function discoverBusinesses(campaign: Campaign) {
   if (process.env.OUTSCRAPER_API_KEY) return discoverWithOutscraper(campaign);
   if (process.env.DISCOVERY_API_URL) return discoverWithCustomAdapter(campaign);
-  return candidatesForCampaign(campaign);
+  const candidates = candidatesForCampaign(campaign);
+  return { candidates, provider: "Demo discovery adapter", rawCount: candidates.length, normalizedCount: candidates.length, contactEnrichmentRequested: false };
+}
+
+export type FilterFailureCode = "min-rating" | "min-reviews" | "website" | "whatsapp" | "social";
+
+export function filterFailureCodes(candidate: ResearchCandidate, campaign: Campaign, options: { includeContactFilters?: boolean } = {}) {
+  const filters = campaign.filters;
+  const failures: FilterFailureCode[] = [];
+  if (filters.minRating && (candidate.rating ?? 0) < filters.minRating) failures.push("min-rating");
+  if (filters.minReviews && (candidate.reviewCount ?? 0) < filters.minReviews) failures.push("min-reviews");
+  if (filters.websiteRequired && !candidate.website) failures.push("website");
+  if (options.includeContactFilters !== false && filters.whatsappRequired && !candidate.contacts?.some((contact) => contact.type === "whatsapp")) failures.push("whatsapp");
+  if (options.includeContactFilters !== false && filters.socialRequired && !candidate.contacts?.some((contact) => ["instagram", "facebook", "linkedin", "youtube"].includes(contact.type))) failures.push("social");
+  return failures;
 }
 
 export function passesFilters(candidate: ResearchCandidate, campaign: Campaign) {
-  const filters = campaign.filters;
-  if (filters.minRating && (candidate.rating ?? 0) < filters.minRating) return false;
-  if (filters.minReviews && (candidate.reviewCount ?? 0) < filters.minReviews) return false;
-  if (filters.websiteRequired && !candidate.website) return false;
-  if (filters.whatsappRequired && !candidate.contacts?.some((contact) => contact.type === "whatsapp")) return false;
-  if (filters.socialRequired && !candidate.contacts?.some((contact) => ["instagram", "facebook", "linkedin", "youtube"].includes(contact.type))) return false;
-  return true;
+  return filterFailureCodes(candidate, campaign).length === 0;
 }

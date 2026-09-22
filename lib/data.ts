@@ -104,9 +104,12 @@ function mapJob(row: any): ResearchJob {
     campaignId: row.campaign_id,
     status: row.status,
     progress: row.progress ?? 0,
+    discoveredCount: row.discovered_count ?? row.total_found ?? 0,
+    filteredOutCount: row.filtered_out_count ?? 0,
     totalFound: row.total_found ?? 0,
     totalProcessed: row.total_processed ?? 0,
     error: row.error,
+    diagnostics: Array.isArray(row.diagnostics_json) ? row.diagnostics_json : [],
     startedAt: row.started_at,
     completedAt: row.completed_at,
     createdAt: row.created_at,
@@ -268,15 +271,17 @@ export async function updateResearchJob(userId: string, id: string, patch: Parti
   if (!current) return undefined;
   const supabase = await clientOrDemo();
   if (!supabase) return demoUpdateJob(id, patch);
-  const update = {
-    status: patch.status,
-    progress: patch.progress,
-    total_found: patch.totalFound,
-    total_processed: patch.totalProcessed,
-    error: patch.error,
-    started_at: patch.startedAt,
-    completed_at: patch.completedAt,
-  };
+  const update: Record<string, unknown> = {};
+  if (patch.status !== undefined) update.status = patch.status;
+  if (patch.progress !== undefined) update.progress = patch.progress;
+  if (patch.discoveredCount !== undefined) update.discovered_count = patch.discoveredCount;
+  if (patch.filteredOutCount !== undefined) update.filtered_out_count = patch.filteredOutCount;
+  if (patch.totalFound !== undefined) update.total_found = patch.totalFound;
+  if (patch.totalProcessed !== undefined) update.total_processed = patch.totalProcessed;
+  if ("error" in patch) update.error = patch.error ?? null;
+  if (patch.diagnostics !== undefined) update.diagnostics_json = patch.diagnostics;
+  if (patch.startedAt !== undefined) update.started_at = patch.startedAt;
+  if (patch.completedAt !== undefined) update.completed_at = patch.completedAt;
   const { data, error } = await supabase.from("research_jobs").update(update).eq("id", id).select("*").single();
   if (error) throw new Error(error.message);
   return mapJob(data);

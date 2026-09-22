@@ -136,11 +136,12 @@ The current paid tier is Growth at ₹1,999 per month. Razorpay Subscriptions re
 1. Open the Razorpay Dashboard and switch to **Test Mode**.
 2. Create test API keys under **Account & Settings → API Keys**.
 3. Create a monthly subscription plan for ₹1,999 and copy its `plan_...` ID.
-4. Add these server-only variables to `.env.local`:
+4. Add these Razorpay variables to `.env.local`:
 
 ```env
 RAZORPAY_KEY_ID=rzp_test_your-key-id
 RAZORPAY_KEY_SECRET=your-test-key-secret
+NEXT_PUBLIC_RAZORPAY_KEY_ID=rzp_test_your-key-id
 RAZORPAY_GROWTH_PLAN_ID=plan_your-growth-plan-id
 RAZORPAY_SUBSCRIPTION_TOTAL_COUNT=120
 RAZORPAY_WEBHOOK_SECRET=choose-a-long-random-secret
@@ -169,6 +170,7 @@ For local testing, use a public HTTPS tunnel because Razorpay cannot deliver web
 - Webhook event IDs are stored for idempotent processing.
 - Cancellation defaults to the end of the current billing cycle.
 - The app keeps the free Starter plan available for every workspace.
+- Standard Web Checkout is available at `/api/create-order` and `/api/verify-payment` for one-time test payments. It does not mark a subscription as paid or create a database record.
 
 ## 6. Configure Outscraper Google Maps discovery
 
@@ -197,13 +199,13 @@ OUTSCRAPER_ENRICH_CONTACTS=false
 
 `OUTSCRAPER_LIMIT` controls the maximum number of results requested per target location. Start with `25` or `50`.
 
-Enable contact enrichment after the base search works:
+Enable contact enrichment for every campaign after the base search works:
 
 ```env
 OUTSCRAPER_ENRICH_CONTACTS=true
 ```
 
-Contact enrichment can increase provider usage and execution time and may add email/social signals from business websites.
+Contact enrichment can increase provider usage and execution time and may add email/social signals from business websites. Campaigns that explicitly require WhatsApp or social profiles request this enrichment automatically. If contact data is still unavailable, QuickLeads keeps otherwise matching businesses and shows a warning with provider documentation so you can verify the channel before outreach.
 
 ### 6.3 India search behavior
 
@@ -282,6 +284,7 @@ OPENAI_MODEL=gpt-5-mini
 
 RAZORPAY_KEY_ID=rzp_test_your-key-id
 RAZORPAY_KEY_SECRET=your-test-key-secret
+NEXT_PUBLIC_RAZORPAY_KEY_ID=rzp_test_your-key-id
 RAZORPAY_WEBHOOK_SECRET=your-webhook-secret
 RAZORPAY_GROWTH_PLAN_ID=plan_your-growth-plan-id
 RAZORPAY_SUBSCRIPTION_TOTAL_COUNT=120
@@ -357,13 +360,14 @@ OPENAI_MODEL=gpt-5-mini
 
 RAZORPAY_KEY_ID=rzp_test_your-key-id
 RAZORPAY_KEY_SECRET=your-test-key-secret
+NEXT_PUBLIC_RAZORPAY_KEY_ID=rzp_test_your-key-id
 RAZORPAY_WEBHOOK_SECRET=your-webhook-secret
 RAZORPAY_GROWTH_PLAN_ID=plan_your-growth-plan-id
 RAZORPAY_SUBSCRIPTION_TOTAL_COUNT=120
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
 
-Do not add provider keys as `NEXT_PUBLIC_` variables or commit them to the repository.
+Never add secret provider keys as `NEXT_PUBLIC_` variables or commit them. `NEXT_PUBLIC_RAZORPAY_KEY_ID` is intentionally browser-visible; `RAZORPAY_KEY_SECRET` must remain server-only.
 
 ### 10.3 Update Supabase URLs
 
@@ -401,7 +405,7 @@ Use systemd, Docker, or another process supervisor. Inject production environmen
 
 - [ ] `.env.local` is not committed.
 - [ ] `BLIO_DEMO_MODE=false` in production.
-- [ ] No provider key uses a `NEXT_PUBLIC_` prefix.
+- [ ] No secret provider key uses a `NEXT_PUBLIC_` prefix; only the Razorpay key ID is browser-visible.
 - [ ] Supabase migration has been applied.
 - [ ] Supabase RLS policies are enabled.
 - [ ] The Supabase service-role key exists only as a server-side deployment secret for the webhook route.

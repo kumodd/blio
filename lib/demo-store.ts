@@ -164,7 +164,14 @@ function loadStore() {
         },
       }));
     }
-    if (Array.isArray(persisted.jobs)) store.jobs = persisted.jobs;
+    if (Array.isArray(persisted.jobs)) {
+      store.jobs = persisted.jobs.map((item) => ({
+        ...item,
+        discoveredCount: Number(item.discoveredCount ?? item.totalFound ?? 0),
+        filteredOutCount: Number(item.filteredOutCount ?? 0),
+        diagnostics: Array.isArray(item.diagnostics) ? item.diagnostics : [],
+      }));
+    }
     if (Array.isArray(persisted.drafts)) store.drafts = persisted.drafts;
   } catch {
     // A missing or unreadable demo file means a fresh in-memory workspace.
@@ -259,8 +266,11 @@ export function demoCreateJob(campaignId: string) {
     campaignId,
     status: "queued",
     progress: 0,
+    discoveredCount: 0,
+    filteredOutCount: 0,
     totalFound: 0,
     totalProcessed: 0,
+    diagnostics: [],
     createdAt: now(),
   };
   store.jobs.unshift(job);

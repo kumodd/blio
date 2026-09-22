@@ -314,6 +314,12 @@ h3 { font-size: 16px; margin-bottom: 5px; }
 .draft-actions { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 13px; }
 .source-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid #eef1ef; padding: 10px 12px; border-radius: 9px; font-size: 11px; }
 .source-row a { color: var(--forest); font-weight: 700; }
+.job-filter-summary { color: var(--muted); font-size: 12px; margin: 10px 0 0; text-align: center; }
+.job-diagnostics { display: grid; gap: 8px; margin-top: 18px; padding: 14px; border: 1px solid #e6ece9; border-radius: 12px; background: #fbfdfc; font-size: 12px; }
+.job-diagnostics > strong { color: var(--ink); font-size: 13px; }
+.job-diagnostic { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; color: var(--muted); line-height: 1.5; }
+.job-diagnostic-warning { color: var(--rose-ink); }
+.job-diagnostic a { flex: 0 0 auto; color: var(--forest); font-weight: 700; text-decoration: underline; }
 .back-link { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12px; font-weight: 700; margin-bottom: 18px; }
 .back-link:hover { color: var(--forest); }
 .job-card { max-width: 680px; padding: 30px; margin: 40px auto; text-align: center; }
@@ -421,6 +427,11 @@ h3 { font-size: 16px; margin-bottom: 5px; }
 .billing-setup-note { padding: 11px 12px; border-radius: 9px; color: #657b6b; background: #edf8f0; font-size: 11px; line-height: 1.5; }
 .billing-cancel { display: grid; justify-items: end; gap: 7px; }
 .billing-cancel .button { white-space: nowrap; }
+.standard-checkout-card { display: grid; gap: 10px; margin-top: 18px; padding: 22px 24px; }
+.standard-checkout-card h2 { margin-bottom: 5px; }
+.standard-checkout-card p:not(.eyebrow) { max-width: 650px; margin-bottom: 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
+.standard-checkout-card .button { justify-self: start; margin-top: 3px; }
+.standard-checkout-card .inline-error { margin-top: 0; }
 .billing-footnote { margin: 15px 2px 0; }
 .contact-page { max-width: 1020px; }
 .contact-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; padding: 10px 0 65px; }

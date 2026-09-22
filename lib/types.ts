@@ -146,12 +146,23 @@ export interface ResearchJob {
   campaignId: string;
   status: JobStatus;
   progress: number;
+  discoveredCount: number;
+  filteredOutCount: number;
   totalFound: number;
   totalProcessed: number;
   error?: string;
+  diagnostics: ResearchDiagnostic[];
   startedAt?: string;
   completedAt?: string;
   createdAt: string;
+}
+
+export interface ResearchDiagnostic {
+  code: string;
+  severity: "info" | "warning";
+  message: string;
+  count?: number;
+  sourceUrl?: string;
 }
 
 export interface DashboardStats {
