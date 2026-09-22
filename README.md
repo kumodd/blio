@@ -14,7 +14,7 @@ With the default `BLIO_DEMO_MODE=true`, sign in with any email and use OTP `1234
 
 For production, configure Supabase, link the project with the Supabase CLI, and run `supabase db push`. Set `BLIO_DEMO_MODE=false`; the app then uses Supabase Auth email OTP, Postgres, RLS, Outscraper Google Maps discovery, and OpenAI intelligence. Configure the Supabase Auth email template to render `{{ .Token }}` so users receive a six-digit code rather than only a magic link.
 
-The product flow is: define your offer → choose location, business type, radius, and approximate prospect count → discover and enrich businesses → score opportunities → review highlighted prospect cards → generate editable outreach → move prospects through the sales pipeline. Public SEO pages are available at `/about`, `/privacy`, and `/terms`.
+The product flow is: define your offer → choose location, business type, radius, and approximate prospect count → discover and enrich businesses → score opportunities → review highlighted prospect cards → generate editable outreach → move prospects through the sales pipeline. Public website pages are available at `/about`, `/pricing`, `/contact`, `/privacy`, `/terms`, and `/refund-cancellation`.
 
 ## Provider setup
 

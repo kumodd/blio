@@ -75,6 +75,7 @@ Supabase is required for persistent data and real email OTP authentication.
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+NEXT_PUBLIC_CONTACT_EMAIL=kumod353@gmail.com
 ```
 
 The anon key is protected by RLS. Never put a Supabase service-role key in this application or in a `NEXT_PUBLIC_` variable.
