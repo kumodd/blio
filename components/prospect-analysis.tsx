@@ -36,7 +36,7 @@ export function ProspectAnalysisPanel({ leadId }: { leadId: string }) {
       <div className="prospect-next-action"><span><MessageCircleQuestion size={14} /> Next best action</span><p>{analysis.nextBestAction}</p></div>
       <div className="analysis-gap-list">{analysis.missingInformation.map((gap) => <div className="analysis-gap" key={`${gap.label}-${gap.priority}`}><div className="analysis-gap-top"><strong>{gap.label}</strong><span className={`analysis-priority analysis-priority-${gap.priority}`}>{gap.priority} priority</span></div><p><b>Why it matters:</b> {gap.whyItMatters}</p><p><b>How to find it:</b> {gap.howToFind}</p></div>)}</div>
       <div className="analysis-questions"><h3><CircleHelp size={15} /> Discovery questions</h3><ul>{analysis.discoveryQuestions.map((question) => <li key={question}>{question}</li>)}</ul></div>
-      <span className="analysis-model">Generated with {analysis.model}</span>
+      <span className="analysis-model">Prepared from the available prospect evidence</span>
     </div> : <div className="prospect-analysis-empty"><Sparkles /><p>Use the public profile as a starting point, then let QuickLeads identify the questions that can turn this prospect into a qualified conversation.</p></div>}
   </section>;
 }

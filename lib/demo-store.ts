@@ -11,6 +11,7 @@ import type {
   ResearchCandidate,
   ResearchJob,
 } from "./types";
+import { deduplicateLeads, publicSourceLabel } from "./research/identity";
 
 const now = () => new Date().toISOString();
 
@@ -160,7 +161,7 @@ function loadStore() {
         business: {
           ...item.business,
           contacts: Array.isArray(item.business?.contacts) ? item.business.contacts : [],
-          sources: Array.isArray(item.business?.sources) ? item.business.sources : [],
+          sources: Array.isArray(item.business?.sources) ? item.business.sources.map((source) => ({ ...source, provider: publicSourceLabel(source.provider) })) : [],
         },
       }));
     }
@@ -169,7 +170,7 @@ function loadStore() {
         ...item,
         discoveredCount: Number(item.discoveredCount ?? item.totalFound ?? 0),
         filteredOutCount: Number(item.filteredOutCount ?? 0),
-        diagnostics: Array.isArray(item.diagnostics) ? item.diagnostics : [],
+        diagnostics: Array.isArray(item.diagnostics) ? item.diagnostics.map((diagnostic) => ({ code: diagnostic.code, severity: diagnostic.severity, message: diagnostic.message, count: diagnostic.count })) : [],
       }));
     }
     if (Array.isArray(persisted.drafts)) store.drafts = persisted.drafts;
@@ -242,7 +243,7 @@ export function demoCreateCampaign(input: { name: string; category: string; loca
 
 export function demoGetLeads(campaignId: string) {
   loadStore();
-  return store.leads.filter((item) => item.campaignId === campaignId).sort((a, b) => b.score - a.score);
+  return deduplicateLeads(store.leads.filter((item) => item.campaignId === campaignId).sort((a, b) => b.score - a.score));
 }
 
 export function demoGetLead(id: string) {
@@ -307,13 +308,15 @@ export function demoGetDrafts(leadId: string) {
 
 export function demoStats(): DashboardStats {
   loadStore();
+  const campaignIds = [...new Set(store.leads.map((lead) => lead.campaignId))];
+  const leads = campaignIds.flatMap((campaignId) => deduplicateLeads(store.leads.filter((lead) => lead.campaignId === campaignId)));
   return {
     campaigns: store.campaigns.filter((item) => item.status === "active").length,
-    discovered: store.leads.length,
-    saved: store.leads.filter((item) => item.status !== "new").length,
-    contacted: store.leads.filter((item) => ["contacted", "replied", "interested", "meeting", "proposal", "won"].includes(item.status)).length,
-    replied: store.leads.filter((item) => ["replied", "interested", "meeting", "won"].includes(item.status)).length,
-    meetings: store.leads.filter((item) => ["meeting", "won"].includes(item.status)).length,
+    discovered: leads.length,
+    saved: leads.filter((item) => item.status !== "new").length,
+    contacted: leads.filter((item) => ["contacted", "replied", "interested", "meeting", "proposal", "won"].includes(item.status)).length,
+    replied: leads.filter((item) => ["replied", "interested", "meeting", "won"].includes(item.status)).length,
+    meetings: leads.filter((item) => ["meeting", "won"].includes(item.status)).length,
   };
 }
 
@@ -341,7 +344,7 @@ export function demoInsertResearchLead(campaignId: string, candidate: ResearchCa
       reviewCount: candidate.reviewCount,
       description: candidate.description,
       contacts: candidate.contacts ?? (candidate.phone ? [{ type: "phone", value: candidate.phone, verified: false }] : []),
-      sources: [{ provider: candidate.sourceProvider ?? "Discovery adapter", providerId: candidate.providerId, sourceUrl: candidate.sourceUrl, observedAt: timestamp }],
+      sources: [{ provider: publicSourceLabel(candidate.sourceProvider), providerId: candidate.providerId, sourceUrl: candidate.sourceUrl, observedAt: timestamp }],
     },
     score: intelligence?.score ?? Math.max(58, 82 - index * 3),
     reasoning: intelligence?.reasoning ?? ["Category and target location match the campaign context.", "Public business information is available for a relevant first-touch conversation."],

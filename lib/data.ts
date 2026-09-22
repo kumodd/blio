@@ -2,6 +2,7 @@
 
 import { createSupabaseServerClient } from "./supabase/server";
 import { isDemoMode } from "./config";
+import { deduplicateLeads, publicSourceLabel } from "./research/identity";
 import {
   demoCreateCampaign,
   demoCreateDraft,
@@ -80,7 +81,7 @@ function mapLead(row: any): Lead {
       })),
       sources: sources.map((source: any) => ({
         id: source.id,
-        provider: source.provider,
+        provider: publicSourceLabel(source.provider),
         providerId: source.provider_id,
         sourceUrl: source.source_url,
         observedAt: source.observed_at,
@@ -109,7 +110,7 @@ function mapJob(row: any): ResearchJob {
     totalFound: row.total_found ?? 0,
     totalProcessed: row.total_processed ?? 0,
     error: row.error,
-    diagnostics: Array.isArray(row.diagnostics_json) ? row.diagnostics_json : [],
+    diagnostics: Array.isArray(row.diagnostics_json) ? row.diagnostics_json.map((diagnostic: any) => ({ code: diagnostic.code, severity: diagnostic.severity, message: diagnostic.message, count: diagnostic.count })) : [],
     startedAt: row.started_at,
     completedAt: row.completed_at,
     createdAt: row.created_at,
@@ -188,9 +189,8 @@ export async function getDashboardStats(userId: string): Promise<DashboardStats>
   if (campaignError) throw new Error(campaignError.message);
   const campaignIds = (campaigns ?? []).map((item) => item.id);
   if (!campaignIds.length) return { campaigns: 0, discovered: 0, saved: 0, contacted: 0, replied: 0, meetings: 0 };
-  const { data: leads, error: leadError } = await supabase.from("lead_records").select("status").in("campaign_id", campaignIds);
-  if (leadError) throw new Error(leadError.message);
-  const statuses = (leads ?? []).map((item) => item.status);
+  const leads = (await Promise.all(campaignIds.map((campaignId) => listLeads(userId, campaignId)))).flat();
+  const statuses = leads.map((item) => item.status);
   return {
     campaigns: campaignIds.length,
     discovered: statuses.length,
@@ -205,12 +205,12 @@ const leadSelection = "*, businesses(*, business_contacts(*), business_sources(*
 
 export async function listLeads(userId: string, campaignId: string) {
   const supabase = await clientOrDemo();
-  if (!supabase) return demoGetLeads(campaignId);
+  if (!supabase) return deduplicateLeads(demoGetLeads(campaignId));
   const campaign = await getCampaign(userId, campaignId);
   if (!campaign) return [];
   const { data, error } = await supabase.from("lead_records").select(leadSelection).eq("campaign_id", campaignId).order("score", { ascending: false });
   if (error) throw new Error(error.message);
-  return (data ?? []).map(mapLead);
+  return deduplicateLeads((data ?? []).map(mapLead));
 }
 
 export async function getLead(userId: string, id: string) {
@@ -290,7 +290,7 @@ export async function updateResearchJob(userId: string, id: string, patch: Parti
 export async function insertResearchLead(userId: string, campaignId: string, candidate: ResearchCandidate, index: number, intelligence?: LeadIntelligence) {
   const supabase = await clientOrDemo();
   if (!supabase) return demoInsertResearchLead(campaignId, candidate, index, intelligence);
-  const existingBusinessResponse = await supabase.from("businesses").select("id").eq("canonical_name", candidate.name).eq("address", candidate.address).maybeSingle();
+  const existingBusinessResponse = await supabase.from("businesses").select("id").eq("canonical_name", candidate.name).eq("address", candidate.address).limit(1).maybeSingle();
   const businessId = existingBusinessResponse.data?.id ?? crypto.randomUUID();
   const timestamp = new Date().toISOString();
   if (!existingBusinessResponse.data) {
@@ -311,12 +311,12 @@ export async function insertResearchLead(userId: string, campaignId: string, can
       description: candidate.description,
     });
     if (businessError) throw new Error(businessError.message);
-    await supabase.from("business_sources").insert({ business_id: businessId, provider: candidate.sourceProvider ?? "Discovery adapter", provider_id: candidate.providerId, source_url: candidate.sourceUrl, observed_at: timestamp });
+    await supabase.from("business_sources").insert({ business_id: businessId, provider: publicSourceLabel(candidate.sourceProvider), provider_id: candidate.providerId, source_url: candidate.sourceUrl, observed_at: timestamp });
     if (candidate.contacts?.length) {
       await supabase.from("business_contacts").insert(candidate.contacts.map((contact) => ({ business_id: businessId, type: contact.type, value: contact.value, label: contact.label, verified: contact.verified ?? false, observed_at: timestamp })));
     }
   }
-  const { data: existingLead } = await supabase.from("lead_records").select("id").eq("campaign_id", campaignId).eq("business_id", businessId).maybeSingle();
+  const { data: existingLead } = await supabase.from("lead_records").select("id").eq("campaign_id", campaignId).eq("business_id", businessId).limit(1).maybeSingle();
   if (existingLead) return existingLead.id;
   const { data, error } = await supabase
     .from("lead_records")

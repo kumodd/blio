@@ -19,6 +19,7 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
     const analysis = await analyzeProspectInformation(campaign, lead);
     return NextResponse.json({ analysis });
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Could not analyze this prospect" }, { status: 500 });
+    console.error("Prospect analysis request failed:", error);
+    return NextResponse.json({ error: "Could not analyze this prospect. Please try again." }, { status: 500 });
   }
 }

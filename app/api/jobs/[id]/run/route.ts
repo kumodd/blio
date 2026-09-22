@@ -28,6 +28,7 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
     });
     return NextResponse.json({ job: current }, { status: 202 });
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Research job failed" }, { status: 500 });
+    console.error("Research run request failed:", error);
+    return NextResponse.json({ error: "Research could not be completed. Review your campaign settings and try again." }, { status: 500 });
   }
 }

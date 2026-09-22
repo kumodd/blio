@@ -4,8 +4,6 @@ import type { BusinessContact, Campaign, ResearchCandidate } from "../types";
 import { candidatesForCampaign } from "../data";
 
 const OUTSCRAPER_URL = "https://api.outscraper.com/maps/search";
-export const OUTSCRAPER_MAPS_SEARCH_DOCS = "https://docs.outscraper.com/endpoints/maps-search/";
-export const OUTSCRAPER_CONTACTS_DOCS = "https://docs.outscraper.com/endpoints/contacts-and-leads/";
 
 function isRecord(value: unknown): value is Record<string, any> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -151,8 +149,8 @@ async function discoverWithOutscraper(campaign: Campaign): Promise<DiscoveryResu
   const payload = await response.json();
   if (payload.status === "Failure") throw new Error("Outscraper reported a failed Google Maps task.");
   const rows = Array.isArray(payload.data) ? payload.data.flat(Infinity) : [];
-  const candidates = rows.map((row: any, index: number) => normalizeCandidate(row, index, "Outscraper Google Maps")).filter((value: ResearchCandidate | null): value is ResearchCandidate => Boolean(value));
-  return { candidates, provider: "Outscraper Google Maps", rawCount: rows.length, normalizedCount: candidates.length, contactEnrichmentRequested };
+  const candidates = rows.map((row: any, index: number) => normalizeCandidate(row, index, "Public business listing")).filter((value: ResearchCandidate | null): value is ResearchCandidate => Boolean(value));
+  return { candidates, provider: "Local business search", rawCount: rows.length, normalizedCount: candidates.length, contactEnrichmentRequested };
 }
 
 async function discoverWithCustomAdapter(campaign: Campaign): Promise<DiscoveryResult> {
@@ -170,14 +168,14 @@ async function discoverWithCustomAdapter(campaign: Campaign): Promise<DiscoveryR
   const values = Array.isArray(payload) ? payload : payload.businesses;
   if (!Array.isArray(values)) throw new Error("Discovery provider returned an invalid response");
   const candidates = values.map((value, index) => normalizeCandidate(value, index)).filter((value: ResearchCandidate | null): value is ResearchCandidate => Boolean(value));
-  return { candidates, provider: "Discovery adapter", rawCount: values.length, normalizedCount: candidates.length, contactEnrichmentRequested: false };
+  return { candidates, provider: "Local business search", rawCount: values.length, normalizedCount: candidates.length, contactEnrichmentRequested: false };
 }
 
 export async function discoverBusinesses(campaign: Campaign) {
   if (process.env.OUTSCRAPER_API_KEY) return discoverWithOutscraper(campaign);
   if (process.env.DISCOVERY_API_URL) return discoverWithCustomAdapter(campaign);
   const candidates = candidatesForCampaign(campaign);
-  return { candidates, provider: "Demo discovery adapter", rawCount: candidates.length, normalizedCount: candidates.length, contactEnrichmentRequested: false };
+  return { candidates, provider: "Sample business search", rawCount: candidates.length, normalizedCount: candidates.length, contactEnrichmentRequested: false };
 }
 
 export type FilterFailureCode = "min-rating" | "min-reviews" | "website" | "whatsapp" | "social";

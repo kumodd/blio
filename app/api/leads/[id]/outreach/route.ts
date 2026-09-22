@@ -20,6 +20,7 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
     const drafts = await Promise.all(generated.drafts.map((draft: { channel: OutreachChannel; body: string; subject?: string }) => createDraft(user.id, { leadId: lead.id, channel: draft.channel, body: draft.body, subject: draft.subject, model: generated.model, promptVersion: generated.promptVersion })));
     return NextResponse.json({ drafts });
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Could not generate outreach" }, { status: 500 });
+    console.error("Outreach generation request failed:", error);
+    return NextResponse.json({ error: "Could not generate outreach. Please try again." }, { status: 500 });
   }
 }
